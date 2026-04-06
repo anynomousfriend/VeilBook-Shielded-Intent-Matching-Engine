@@ -1,0 +1,129 @@
+pragma language_version >= 0.20;
+
+import CompactStandardLibrary;
+
+export enum State { UNSET, OPEN, MATCHED, CANCELLED }
+
+export struct Order {
+  direction: Uint<8>,    // 0=BUY, 1=SELL
+  price: Uint<64>,
+  size: Uint<64>
+}
+
+export ledger match_count: Counter;
+export ledger orders_state: Map<Bytes<32>, State>;
+export ledger token_locks: Map<Bytes<32>, Uint<64>>;
+export ledger token_color: Bytes<32>;
+
+// --- Order submission witnesses ---
+witness getOrderNonce(): Bytes<32>;
+witness getOrder(): Order;
+
+// --- Match witnesses ---
+witness getMatchOrderANonce(): Bytes<32>;
+witness getMatchOrderA(): Order;
+witness getMatchOrderBNonce(): Bytes<32>;
+witness getMatchOrderB(): Order;
+witness getMatchBuyerAddress(): Either<ContractAddress, UserAddress>;
+witness getMatchSellerAddress(): Either<ContractAddress, UserAddress>;
+
+// --- Cancel witnesses ---
+witness getCancelOrderNonce(): Bytes<32>;
+witness getCancelOrder(): Order;
+witness getCancelUserAddress(): Either<ContractAddress, UserAddress>;
+
+constructor(initial_supply: Uint<64>, owner: UserAddress) {
+  const domain = pad(32, "veilbook:token:v1");
+  const d_supply = disclose(initial_supply);
+  const d_owner = disclose(owner);
+  token_color = mintUnshieldedToken(domain, d_supply, right<ContractAddress, UserAddress>(d_owner));
+}
+
+export circuit submit_order(deposit: Uint<64>): Bytes<32> {
+  const nonce = getOrderNonce();
+  const order = getOrder();
+  const commitment = persistentCommit<Order>(order, nonce);
+
+  const d_commit = disclose(commitment);
+  const d_deposit = disclose(deposit);
+  assert(!orders_state.member(d_commit), "Order already exists");
+
+  // Verify deposit matches order size
+  assert(disclose(order.size == deposit), "Deposit must equal order size");
+
+  // Escrow: absorb user's tokens into the contract
+  receiveUnshielded(token_color, d_deposit as Uint<128>);
+
+  orders_state.insert(d_commit, State.OPEN);
+  token_locks.insert(d_commit, d_deposit);
+  return d_commit;
+}
+
+export circuit match_orders(commit_a: Bytes<32>, commit_b: Bytes<32>): [] {
+  const d_commit_a = disclose(commit_a);
+  const d_commit_b = disclose(commit_b);
+
+  assert(orders_state.member(d_commit_a), "Order A not in state");
+  assert(orders_state.member(d_commit_b), "Order B not in state");
+
+  const status_a = orders_state.lookup(d_commit_a);
+  const status_b = orders_state.lookup(d_commit_b);
+  assert(status_a == State.OPEN, "Order A not open");
+  assert(status_b == State.OPEN, "Order B not open");
+
+  const a_nonce = getMatchOrderANonce();
+  const a_order = getMatchOrderA();
+  const b_nonce = getMatchOrderBNonce();
+  const b_order = getMatchOrderB();
+
+  assert(d_commit_a == persistentCommit<Order>(a_order, a_nonce), "Order A commitment mismatch");
+  assert(d_commit_b == persistentCommit<Order>(b_order, b_nonce), "Order B commitment mismatch");
+
+  // Matching logic
+  assert(disclose(a_order.direction != b_order.direction), "Orders must be opposite directions");
+  assert(disclose(a_order.size == b_order.size), "Size mismatch (v1 requires exact size match)");
+
+  if (disclose(a_order.direction == 0)) { // A is BUY, B is SELL
+    assert(disclose(a_order.price >= b_order.price), "Price mismatch: BUY price < SELL price");
+  } else { // A is SELL, B is BUY
+    assert(disclose(b_order.price >= a_order.price), "Price mismatch: BUY price < SELL price");
+  }
+
+  // Settlement: send tokens to both parties
+  const settlement_size = disclose(a_order.size) as Uint<128>;
+  const buyer_addr = getMatchBuyerAddress();
+  const seller_addr = getMatchSellerAddress();
+  sendUnshielded(token_color, settlement_size, disclose(buyer_addr));
+  sendUnshielded(token_color, settlement_size, disclose(seller_addr));
+
+  orders_state.insert(d_commit_a, State.MATCHED);
+  orders_state.insert(d_commit_b, State.MATCHED);
+
+  match_count.increment(1);
+}
+
+export circuit cancel_order(commitment: Bytes<32>): [] {
+  const d_commit = disclose(commitment);
+
+  assert(orders_state.member(d_commit), "Order not found");
+  assert(orders_state.lookup(d_commit) == State.OPEN, "Order not open");
+
+  // Verify caller owns the order by reconstructing the commitment
+  const nonce = getCancelOrderNonce();
+  const order = getCancelOrder();
+  assert(d_commit == persistentCommit<Order>(order, nonce), "Commitment mismatch — not order owner");
+
+  // Refund locked tokens to user
+  const locked_amount = token_locks.lookup(d_commit) as Uint<128>;
+  const user_addr = getCancelUserAddress();
+  sendUnshielded(token_color, locked_amount, disclose(user_addr));
+
+  orders_state.insert(d_commit, State.CANCELLED);
+  token_locks.remove(d_commit);
+}
+
+
+
+export circuit get_balance(): Uint<128> {
+  return unshieldedBalance(token_color);
+}
