@@ -80,13 +80,13 @@ export interface WalletContext {
 export const getVeilbookLedgerState = async (
   providers: VeilbookProviders,
   contractAddress: ContractAddress,
-) => {
+): Promise<Veilbook.Ledger | null> => {
   assertIsContractAddress(contractAddress);
   logger.info('Checking contract ledger state...');
-  const state = await providers.publicDataProvider
-    .queryContractState(contractAddress)
-    .then((contractState) => (contractState != null ? Veilbook.ledger(contractState.data) : null));
-  logger.info(`Ledger state: ${JSON.stringify(state, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+  const state = (await providers.publicDataProvider.queryContractState(contractAddress).then((contractState) => {
+    return contractState != null ? Veilbook.ledger(contractState.data) : null;
+  })) as Veilbook.Ledger | null;
+  logger.info(`Ledger state: ${JSON.stringify(state, (_, v) => (typeof v === 'bigint' ? v.toString() : v))}`);
   return state;
 };
 
@@ -126,7 +126,7 @@ export const deploy = async (
 const updatePrivateState = async (
   providers: VeilbookProviders,
   address: string,
-  state: Partial<VeilbookPrivateState>
+  state: Partial<VeilbookPrivateState>,
 ) => {
   providers.privateStateProvider.setContractAddress(address);
   const currentState = (await providers.privateStateProvider.get(VeilbookPrivateStateId)) ?? {};
@@ -218,7 +218,6 @@ export const cancelOrder = async (
   return finalizedTxData.public;
 };
 
-
 export const getContractBalance = async (
   providers: VeilbookProviders,
   contract: DeployedVeilbookContract,
@@ -288,7 +287,10 @@ export const waitForFunds = (wallet: WalletFacade): Promise<bigint> =>
     wallet.state().pipe(
       Rx.throttleTime(10_000),
       Rx.filter((state) => state.isSynced),
-      Rx.map((s) => (s.unshielded?.balances[unshieldedToken().raw] ?? 0n) + (s.shielded?.balances[unshieldedToken().raw] ?? 0n)),
+      Rx.map(
+        (s) =>
+          (s.unshielded?.balances[unshieldedToken().raw] ?? 0n) + (s.shielded?.balances[unshieldedToken().raw] ?? 0n),
+      ),
       Rx.filter((balance) => balance > 0n),
     ),
   );
@@ -424,7 +426,9 @@ const printWalletSummary = (seed: string, state: any, unshieldedKeystore: Unshie
 
   const DIV = '──────────────────────────────────────────────────────────────';
 
-  console.log(`\n${DIV}\n  Wallet Overview                            Network: ${networkId}\n${DIV}\n  Seed: ${seed}\n${DIV}\n\n  Shielded (ZSwap)\n  └─ Address: ${shieldedAddress}\n\n  Unshielded\n  ├─ Address: ${unshieldedKeystore.getBech32Address()}\n  └─ Balance: ${formatBalance(unshieldedBalance)} tNight\n\n  Dust\n  └─ Address: ${MidnightBech32m.encode(networkId, state.dust.address).toString()}\n\n${DIV}`);
+  console.log(
+    `\n${DIV}\n  Wallet Overview                            Network: ${networkId}\n${DIV}\n  Seed: ${seed}\n${DIV}\n\n  Shielded (ZSwap)\n  └─ Address: ${shieldedAddress}\n\n  Unshielded\n  ├─ Address: ${unshieldedKeystore.getBech32Address()}\n  └─ Balance: ${formatBalance(unshieldedBalance)} tNight\n\n  Dust\n  └─ Address: ${MidnightBech32m.encode(networkId, state.dust.address).toString()}\n\n${DIV}`,
+  );
 };
 
 export const buildWalletAndWaitForFunds = async (config: Config, seed: string): Promise<WalletContext> => {
@@ -458,13 +462,17 @@ export const buildWalletAndWaitForFunds = async (config: Config, seed: string): 
 
   const networkId = getNetworkId();
   const DIV = '──────────────────────────────────────────────────────────────';
-  console.log(`\n${DIV}\n  Wallet Overview                            Network: ${networkId}\n${DIV}\n  Seed: ${seed}\n\n  Unshielded Address (send tNight here):\n  ${unshieldedKeystore.getBech32Address()}\n\n  Fund your wallet with tNight from the Preprod faucet:\n  https://faucet.preprod.midnight.network/\n${DIV}\n`);
+  console.log(
+    `\n${DIV}\n  Wallet Overview                            Network: ${networkId}\n${DIV}\n  Seed: ${seed}\n\n  Unshielded Address (send tNight here):\n  ${unshieldedKeystore.getBech32Address()}\n\n  Fund your wallet with tNight from the Preprod faucet:\n  https://faucet.preprod.midnight.network/\n${DIV}\n`,
+  );
 
   const syncedState = await withStatus('Syncing with network', () => waitForSync(wallet));
 
   printWalletSummary(seed, syncedState, unshieldedKeystore);
 
-  const balance = (syncedState.unshielded.balances[unshieldedToken().raw] ?? 0n) + (syncedState.shielded.balances[unshieldedToken().raw] ?? 0n);
+  const balance =
+    (syncedState.unshielded.balances[unshieldedToken().raw] ?? 0n) +
+    (syncedState.shielded.balances[unshieldedToken().raw] ?? 0n);
   if (balance === 0n) {
     const fundedBalance = await withStatus('Waiting for incoming tokens', () => waitForFunds(wallet));
     console.log(`    Balance: ${formatBalance(fundedBalance)} tNight\n`);

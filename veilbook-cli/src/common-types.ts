@@ -7,7 +7,11 @@ export type VeilbookCircuits = ProvableCircuitId<Veilbook.Contract<VeilbookPriva
 
 export const VeilbookPrivateStateId = 'veilbookPrivateState';
 
-export type VeilbookProviders = MidnightProviders<VeilbookCircuits, typeof VeilbookPrivateStateId, VeilbookPrivateState>;
+export type VeilbookProviders = MidnightProviders<
+  VeilbookCircuits,
+  typeof VeilbookPrivateStateId,
+  VeilbookPrivateState
+>;
 
 export type VeilbookContract = Veilbook.Contract<VeilbookPrivateState>;
 

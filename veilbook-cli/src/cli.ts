@@ -223,8 +223,8 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
   }
 
   // Store local orders with their commitments
-  const localOrders: { order: Veilbook.Order, nonce: Uint8Array, commitment: Uint8Array }[] = [];
-  
+  const localOrders: { order: Veilbook.Order; nonce: Uint8Array; commitment: Uint8Array }[] = [];
+
   // Get the user's unshielded address bytes for token operations
   const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
   const myAddressBytes = Buffer.from(myAddressHex, 'hex');
@@ -252,7 +252,9 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
           // Store commitment locally for matching/cancelling
           const commitment = result.commitment;
           localOrders.push({ order, nonce, commitment });
-          console.log(`  ✓ Order submitted. Local ID: ${localOrders.length - 1}. Commitment: ${Buffer.from(commitment).toString('hex').slice(0, 16)}...\n`);
+          console.log(
+            `  ✓ Order submitted. Local ID: ${localOrders.length - 1}. Commitment: ${Buffer.from(commitment).toString('hex').slice(0, 16)}...\n`,
+          );
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           console.log(`  ✗ Failed to submit Order: ${msg}\n`);
@@ -268,7 +270,7 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
           const idxBStr = await rli.question('  Local ID of Order B (SELL): ');
           const entryA = localOrders[parseInt(idxAStr, 10)];
           const entryB = localOrders[parseInt(idxBStr, 10)];
-          
+
           if (!entryA || !entryB) {
             console.log('  ✗ Invalid local IDs.\n');
             break;
@@ -277,13 +279,13 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
           // For v1, both buyer and seller are the same wallet (demo mode)
           await api.withStatus('Matching Orders', () =>
             api.matchOrders(
-              providers, 
-              veilbookContract, 
-              entryA.order, 
-              entryA.nonce, 
-              entryB.order, 
-              entryB.nonce, 
-              entryA.commitment, 
+              providers,
+              veilbookContract,
+              entryA.order,
+              entryA.nonce,
+              entryB.order,
+              entryB.nonce,
+              entryA.commitment,
               entryB.commitment,
               myAddressBytes,
               myAddressBytes,
@@ -315,18 +317,21 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
       case '4':
         try {
           await api.displayVeilbookStatus(providers, veilbookContract);
-          
+
           // Display contract balance
-          const balance = await api.withStatus('Fetching balance', () => api.getContractBalance(providers, veilbookContract));
+          const balance = await api.withStatus('Fetching balance', () =>
+            api.getContractBalance(providers, veilbookContract),
+          );
           console.log(`\n  Contract Balance: ${balance} tokens\n`);
 
           // Display local orders
           console.log(`  --- Local Orders (${localOrders.length}) ---`);
           localOrders.forEach((o, i) => {
-            console.log(`  [${i}] DIR:${o.order.direction} PRICE:${o.order.price} SIZE:${o.order.size} COMMIT:${Buffer.from(o.commitment).toString('hex').slice(0, 16)}...`);
+            console.log(
+              `  [${i}] DIR:${o.order.direction} PRICE:${o.order.price} SIZE:${o.order.size} COMMIT:${Buffer.from(o.commitment).toString('hex').slice(0, 16)}...`,
+            );
           });
           console.log('  -----------------------\n');
-
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           console.log(`  ✗ Failed to display status: ${msg}\n`);
