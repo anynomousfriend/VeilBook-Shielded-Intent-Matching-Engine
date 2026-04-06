@@ -124,15 +124,6 @@ export class VeilbookSimulator {
     return ledger(this.circuitContext.currentQueryContext.state);
   }
 
-  public distributeTokens(amount: bigint, recipientAddr: Uint8Array): Ledger {
-    this.circuitContext = this.contract.impureCircuits.distribute_tokens(
-      this.circuitContext,
-      amount,
-      userAddress(recipientAddr)
-    ).context;
-    return ledger(this.circuitContext.currentQueryContext.state);
-  }
-
   public getBalance(): bigint {
     const result = this.contract.impureCircuits.get_balance(
       this.circuitContext
