@@ -35,7 +35,7 @@ import {
   UnshieldedWallet,
   type UnshieldedKeystore,
 } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';
-import { type Logger } from 'pino';
+import pino, { type Logger } from 'pino';
 import * as Rx from 'rxjs';
 import { WebSocket } from 'ws';
 import {
@@ -58,7 +58,7 @@ import {
   ShieldedEncryptionPublicKey,
 } from '@midnight-ntwrk/wallet-sdk-address-format';
 
-let logger: Logger;
+let logger: Logger = pino({ level: 'silent' });
 
 // Required for GraphQL subscriptions (wallet sync) to work in Node.js
 // @ts-expect-error: It's needed to enable WebSocket usage through apollo

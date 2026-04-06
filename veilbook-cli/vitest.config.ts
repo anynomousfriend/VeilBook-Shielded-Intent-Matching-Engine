@@ -25,9 +25,9 @@ export default defineConfig({
     },
     globals: true,
     environment: 'node',
-    include: ['**/*.test.ts'],
+    include: ['src/test/**/*.test.ts'],
     exclude: ['node_modules'],
-    root: '.',
+    root: process.cwd(),
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
