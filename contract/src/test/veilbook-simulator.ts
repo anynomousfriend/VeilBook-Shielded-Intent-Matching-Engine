@@ -31,7 +31,9 @@ export class VeilbookSimulator {
 
   constructor(initialSupply: bigint = 1_000_000n) {
     this.contract = new Contract<VeilbookPrivateState>(witnesses);
-    const ownerAddr = new Uint8Array(32).fill(42);
+    // ownerAddr must match the coinPublicKey derived from createConstructorContext's
+    // "0".repeat(64) arg — which encodes to 32 zero bytes.
+    const ownerAddr = new Uint8Array(32);
     const {
       currentPrivateState,
       currentContractState,
