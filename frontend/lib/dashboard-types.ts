@@ -15,3 +15,9 @@ export interface OrderData {
   blockHeight?: number;
   nonce?: string;
 }
+
+export type CounterpartyStatus =
+  | "DISCONNECTED"
+  | "CONNECTED"
+  | "ORDER_RECEIVED"
+  | "MATCH_IN_PROGRESS";

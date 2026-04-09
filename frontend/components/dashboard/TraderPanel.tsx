@@ -3,7 +3,7 @@
 import React, { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import type { TraderState, OrderData } from "@/lib/dashboard-types";
+import type { TraderState, OrderData, CounterpartyStatus } from "@/lib/dashboard-types";
 import OrderForm from "./OrderForm";
 import SealedEnvelope from "./SealedEnvelope";
 import { Lock, Search } from "lucide-react";
@@ -12,7 +12,9 @@ interface TraderPanelProps {
   label: string;
   traderState: TraderState;
   order: OrderData | null;
-  counterpartyState: TraderState;
+  counterpartyStatus: CounterpartyStatus;
+  counterpartyDirection: "BUY" | "SELL" | null;
+  peerCount: number;
   onOpenForm: () => void;
   onSubmitOrder: (order: OrderData) => void;
   onAttemptMatch: () => void;
@@ -23,7 +25,9 @@ export default function TraderPanel({
   label,
   traderState,
   order,
-  counterpartyState,
+  counterpartyStatus,
+  counterpartyDirection,
+  peerCount,
   onOpenForm,
   onSubmitOrder,
   onAttemptMatch,
@@ -32,23 +36,18 @@ export default function TraderPanel({
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Depth and Luminance mechanics based on counterparty state
   const isFocused = traderState === "FORM_OPEN" || traderState === "PROVING" || traderState === "MATCHING";
-  const isCounterpartyFocused = counterpartyState === "FORM_OPEN" || counterpartyState === "PROVING" || counterpartyState === "MATCHING";
-  const isRecessed = !isFocused && isCounterpartyFocused;
 
   useGSAP(() => {
-    if (isRecessed) {
-      gsap.to(containerRef.current, { scale: 0.98, opacity: 0.4, filter: "blur(2px)", duration: 0.6, ease: "power2.out" });
-    } else {
+    if (containerRef.current) {
       gsap.to(containerRef.current, { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out" });
     }
-  }, [isRecessed]);
+  }, [isFocused]);
 
   // Entrance animation for content state changes
   useGSAP(() => {
     if (contentRef.current && contentRef.current.children.length > 0) {
-      gsap.fromTo(contentRef.current.children[0], 
+      gsap.fromTo(contentRef.current.children[0],
         { opacity: 0, y: 15 },
         { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }
       );
@@ -57,7 +56,7 @@ export default function TraderPanel({
 
   return (
     <div ref={containerRef} className="h-full flex flex-col p-8 md:p-12 relative overflow-hidden bg-black transition-colors duration-700">
-      {/* Structural ambient light instead of color */}
+      {/* Structural ambient light */}
       <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[150%] h-64 bg-white/[0.02] rounded-[100%] blur-3xl pointer-events-none transition-opacity duration-1000 ${isFocused ? 'opacity-100' : 'opacity-0'}`} />
 
       {/* Header */}
@@ -74,7 +73,7 @@ export default function TraderPanel({
 
       {/* Content area */}
       <div ref={contentRef} className="flex-1 flex items-center justify-center relative z-10 w-full max-w-md mx-auto">
-        
+
         {traderState === "IDLE" && (
           <div key="idle" className="w-full">
             <button
@@ -132,6 +131,31 @@ export default function TraderPanel({
                 {order.commitment}
               </p>
             </div>
+
+            {/* Counterparty status indicator */}
+            {counterpartyStatus === "DISCONNECTED" && (
+              <div className="p-3 border border-white/10 bg-white/[0.02] text-center">
+                <p className="font-mono text-[10px] text-white/30 tracking-widest animate-pulse">
+                  AWAITING_COUNTERPARTY...
+                </p>
+              </div>
+            )}
+
+            {counterpartyStatus === "CONNECTED" && (
+              <div className="p-3 border border-emerald-400/20 bg-emerald-400/5 text-center">
+                <p className="font-mono text-[10px] text-emerald-400/60 tracking-widest">
+                  PEER_ONLINE — AWAITING_THEIR_ORDER
+                </p>
+              </div>
+            )}
+
+            {counterpartyStatus === "ORDER_RECEIVED" && !canMatch && (
+              <div className="p-3 border border-white/20 bg-white/5 text-center">
+                <p className="font-mono text-[10px] text-white/50 tracking-widest">
+                  COUNTERPARTY_{counterpartyDirection}_ORDER_RECEIVED
+                </p>
+              </div>
+            )}
 
             {canMatch && (
               <button

@@ -82,7 +82,7 @@ export default function PublicFeed({ events }: PublicFeedProps) {
                     {event.hash}
                   </p>
                   <p className="font-mono text-[9px] text-white/40 mt-1 uppercase tracking-widest">
-                    BLK_{event.blockHeight} {`//`} {event.slot}
+                    BLK_{event.blockHeight} {`//`} {event.slot === "PEER" ? "COUNTERPARTY" : event.slot}
                   </p>
                 </div>
               </div>

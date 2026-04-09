@@ -5,7 +5,8 @@
   "type": "module",
   "workspaces": [
     "veilbook-cli",
-    "contract"
+    "contract",
+    "relay"
   ],
   "devDependencies": {
     "@eslint/js": "^9.39.2",

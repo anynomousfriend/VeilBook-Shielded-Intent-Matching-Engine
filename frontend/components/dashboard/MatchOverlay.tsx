@@ -4,7 +4,12 @@ import React, { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
-export default function MatchOverlay() {
+interface MatchOverlayProps {
+  labelA?: string;
+  labelB?: string;
+}
+
+export default function MatchOverlay({ labelA = "YOU", labelB = "PEER" }: MatchOverlayProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const leftLineRef = useRef<SVGLineElement>(null);
   const rightLineRef = useRef<SVGLineElement>(null);
@@ -24,7 +29,7 @@ export default function MatchOverlay() {
       .to(centerNodeRef.current, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(2)" }, 0.4)
       .to(centerNodeRef.current, { scale: 1.2, opacity: 0, duration: 0.3, ease: "power2.in" }, 1.5)
       .to([leftLineRef.current, rightLineRef.current], { opacity: 0, duration: 0.3 }, 1.5);
-      
+
     gsap.to(textRef.current, { opacity: 1, duration: 1, yoyo: true, repeat: -1, ease: "sine.inOut" });
   }, { scope: containerRef });
 
@@ -38,7 +43,7 @@ export default function MatchOverlay() {
       <div className="relative z-10 text-center space-y-12">
         <div className="flex items-center justify-center relative w-[400px] h-32 mx-auto">
           <div className="absolute left-0 w-20 h-14 border border-white/20 bg-white/5 backdrop-blur-sm flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.05)]">
-            <span className="font-mono text-xs text-white/50 tracking-widest">TRADER_A</span>
+            <span className="font-mono text-[10px] text-white/50 tracking-widest">{labelA}</span>
           </div>
 
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 128" fill="none">
@@ -48,7 +53,7 @@ export default function MatchOverlay() {
           </svg>
 
           <div className="absolute right-0 w-20 h-14 border border-white/20 bg-white/5 backdrop-blur-sm flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.05)]">
-            <span className="font-mono text-xs text-white/50 tracking-widest">TRADER_B</span>
+            <span className="font-mono text-[10px] text-white/50 tracking-widest">{labelB}</span>
           </div>
         </div>
 
