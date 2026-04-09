@@ -30,8 +30,10 @@ async function runTest() {
     console.log('Configuring providers...');
     const providers = await api.configureProviders(walletCtx, config);
 
+    const ownerBytes = await api.getCoinPublicKeyBytes(walletCtx);
+
     console.log('Deploying contract...');
-    const contract = await api.deploy(providers, {}, myAddressBytes);
+    const contract = await api.deploy(providers, {}, ownerBytes);
 
     console.log('Submitting Order A (BUY 100 @ 50)...');
     const orderA: Veilbook.Order = { direction: 0n, price: 50n, size: 100n };

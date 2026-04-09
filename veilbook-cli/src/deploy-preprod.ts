@@ -1,4 +1,4 @@
-import { deploy, configureProviders, buildWalletAndWaitForFunds, setLogger } from './api.js';
+import { deploy, configureProviders, buildWalletAndWaitForFunds, getCoinPublicKeyBytes, setLogger } from './api.js';
 import { PreprodConfig } from './config.js';
 import pino from 'pino';
 import fs from 'node:fs';
@@ -25,9 +25,8 @@ async function run() {
   const walletCtx = await buildWalletAndWaitForFunds(config, seed);
   const providers = await configureProviders(walletCtx, config);
 
-  const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
-  const myAddressBytes = Buffer.from(myAddressHex, 'hex');
-  const deployedContract = await deploy(providers, {}, myAddressBytes);
+  const ownerBytes = await getCoinPublicKeyBytes(walletCtx);
+  const deployedContract = await deploy(providers, {}, ownerBytes);
   const address = deployedContract.deployTxData.public.contractAddress;
 
   logger.info(`SUCCESS: Veilbook contract deployed at: ${address}`);

@@ -160,8 +160,7 @@ const deployOrJoin = async (
   walletCtx: api.WalletContext,
   rli: Interface,
 ): Promise<DeployedVeilbookContract | null> => {
-  const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
-  const myAddressBytes = Buffer.from(myAddressHex, 'hex');
+  const ownerBytes = await api.getCoinPublicKeyBytes(walletCtx);
   while (true) {
     const dustLabel = await getDustLabel(walletCtx.wallet);
     const choice = await rli.question(contractMenu(dustLabel));
@@ -169,7 +168,7 @@ const deployOrJoin = async (
       case '1':
         try {
           const contract = await api.withStatus('Deploying Veilbook contract', () =>
-            api.deploy(providers, {}, myAddressBytes),
+            api.deploy(providers, {}, ownerBytes),
           );
           console.log(`  Contract deployed at: ${contract.deployTxData.public.contractAddress}\n`);
           return contract;

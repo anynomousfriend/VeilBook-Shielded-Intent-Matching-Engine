@@ -498,6 +498,11 @@ export const buildWalletAndWaitForFunds = async (config: Config, seed: string): 
 export const buildFreshWallet = async (config: Config): Promise<WalletContext> =>
   await buildWalletAndWaitForFunds(config, toHex(Buffer.from(generateRandomSeed())));
 
+export const getCoinPublicKeyBytes = async (ctx: WalletContext): Promise<Uint8Array> => {
+  const state = await Rx.firstValueFrom(ctx.wallet.state().pipe(Rx.filter((s) => s.isSynced)));
+  return Buffer.from(state.shielded.coinPublicKey.toHexString(), 'hex');
+};
+
 export const configureProviders = async (ctx: WalletContext, config: Config) => {
   const walletAndMidnightProvider = await createWalletAndMidnightProvider(ctx);
   const zkConfigProvider = new NodeZkConfigProvider<VeilbookCircuits>(contractConfig.zkConfigPath);

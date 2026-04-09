@@ -28,11 +28,13 @@ describe('Veilbook API E2E', () => {
       const walletCtx = await testEnv.getWallet();
       const providers = await api.configureProviders(walletCtx, (testEnv as any).testConfig.dappConfig);
 
+      // ownPublicKey() in circuits returns the coin public key, so use that as the owner
+      const ownerBytes = await api.getCoinPublicKeyBytes(walletCtx);
       const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
       const myAddressBytes = Buffer.from(myAddressHex, 'hex');
 
       // Deploy — tokens are minted to the contract treasury, not the wallet
-      const contract = await api.deploy(providers, {}, myAddressBytes);
+      const contract = await api.deploy(providers, {}, ownerBytes);
       expect(contract.deployTxData.public.contractAddress).toBeDefined();
 
       // Transfer tokens from the contract treasury to this wallet so we can submit orders
