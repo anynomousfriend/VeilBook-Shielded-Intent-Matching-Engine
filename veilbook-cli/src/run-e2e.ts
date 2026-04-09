@@ -47,6 +47,10 @@ async function runTest() {
     console.log('Deploying contract...');
     const contract = await api.deploy(providers, {}, ownerBytes);
 
+    // Wait for wallet to process the deployment block (avoids stale UTXO / error 194)
+    console.log('Waiting for wallet to sync deployment...');
+    await api.waitForWalletRefresh(walletCtx.wallet);
+
     console.log('Submitting Order A (BUY 100 @ 50)...');
     const orderA: Veilbook.Order = { direction: 0n, price: 50n, size: 100n };
     const nonceA = generateRandomSeed();

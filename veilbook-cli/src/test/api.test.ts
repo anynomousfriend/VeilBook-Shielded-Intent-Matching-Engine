@@ -37,6 +37,9 @@ describe('Veilbook API E2E', () => {
       const contract = await api.deploy(providers, {}, ownerBytes);
       expect(contract.deployTxData.public.contractAddress).toBeDefined();
 
+      // Wait for wallet to process the deployment block (avoids stale UTXO / error 194)
+      await api.waitForWalletRefresh(walletCtx.wallet);
+
       // Transfer tokens from the contract treasury to this wallet so we can submit orders
       await api.transferTokens(providers, contract, 500n, myAddressBytes);
 

@@ -294,6 +294,46 @@ export const waitForSync = (wallet: WalletFacade) =>
     ),
   );
 
+/**
+ * After a deploy (or any state-changing tx), the wallet's UTXO set may still
+ * reference consumed dust coins. We must wait until the wallet has processed
+ * the block that included the previous tx before submitting the next one.
+ *
+ * Strategy: snapshot `dust.availableCoins.length`, then wait for a state change
+ * (coin count changes as old dust is consumed and new dust matures). Falls back
+ * to a simple delay if the state never changes within the timeout.
+ */
+export const waitForWalletRefresh = async (
+  wallet: WalletFacade,
+  timeoutMs: number = 30_000,
+): Promise<void> => {
+  const initial = await Rx.firstValueFrom(wallet.state().pipe(Rx.filter((s) => s.isSynced)));
+  const initialDustCount = initial.dust.availableCoins.length;
+  const initialPendingCount = initial.dust.pendingCoins.length;
+
+  try {
+    await Rx.firstValueFrom(
+      wallet.state().pipe(
+        Rx.filter((s) => s.isSynced),
+        Rx.filter((s) => {
+          // The wallet has processed a new block when dust counts shift
+          // (consumed coins disappear, new coins appear or pending -> available)
+          return (
+            s.dust.availableCoins.length !== initialDustCount ||
+            s.dust.pendingCoins.length !== initialPendingCount
+          );
+        }),
+        Rx.timeout(timeoutMs),
+      ),
+    );
+  } catch {
+    // Timeout is acceptable — the wallet may already be up-to-date.
+    // Fall back to a fixed delay to give the node time to propagate.
+    logger.info('waitForWalletRefresh: timed out waiting for state change, adding fixed delay');
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+  }
+};
+
 export const waitForFunds = (wallet: WalletFacade): Promise<bigint> =>
   Rx.firstValueFrom(
     wallet.state().pipe(
