@@ -61,8 +61,15 @@ Veilbook is a privacy-preserving intent-matching engine that demonstrates how to
     npm run preprod
     ```
 
-6.  **Launch the Web Dashboard**
-    Interact with the dark pool via a visual interface.
+6.  **Launch the WebSocket Relay Server**
+    The relay synchronizes counterparty state between browsers without requiring chain access.
+    ```bash
+    cd relay
+    npx tsx server.ts
+    ```
+
+7.  **Launch the Web Dashboard**
+    Interact with the dark pool via a visual interface. Open the dashboard, commit an order, and share the generated URL (with `?contract=<addr>`) to connect with a counterparty.
     ```bash
     cd frontend
     npm run dev
@@ -84,6 +91,8 @@ veilbook/
     ├── src/api.ts             # Wallet and contract management logic
     ├── src/deploy-preprod.ts  # Contract deployment script
     └── proof-server.yml       # Docker config for ZK proof generation
+└── 📡 relay/                 # WebSocket Relay Server
+    └── server.ts              # Stateless message bus for browser coordination
 ```
 
 ---
@@ -114,6 +123,7 @@ Veilbook leverages Midnight’s **Kachina model** to provide a decentralized, tr
 ## ⚡ CONTRACT FEATURES
 
 ### Trader Actions
+- **`transfer_tokens(recipient, amount)`**: Allows the deployer to distribute custom test tokens to other users' Unshielded Addresses to cover order escrows.
 - **`submit_order(deposit)`**: Hashes an order (Price, Size, Direction) and locks the corresponding tokens in the contract's escrow.
 - **`match_orders(commit_a, commit_b)`**: Takes two public commitments and local private witnesses. It proves they are a valid pair (opposite directions, matching size, overlapping price) and settles the trade.
 - **`cancel_order(commitment)`**: Allows a user to reconstruct their commitment locally to prove ownership and reclaim their locked tokens.
