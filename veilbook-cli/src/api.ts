@@ -301,7 +301,8 @@ export const waitForSync = (wallet: WalletFacade) =>
  *
  * Strategy: snapshot `dust.availableCoins.length`, then wait for a state change
  * (coin count changes as old dust is consumed and new dust matures). Falls back
- * to a simple delay if the state never changes within the timeout.
+ * to a generous delay if the state never changes within the timeout (e.g. the
+ * wallet already processed the block before we captured the initial snapshot).
  */
 export const waitForWalletRefresh = async (wallet: WalletFacade, timeoutMs: number = 30_000): Promise<void> => {
   const initial = await Rx.firstValueFrom(wallet.state().pipe(Rx.filter((s) => s.isSynced)));
@@ -322,11 +323,14 @@ export const waitForWalletRefresh = async (wallet: WalletFacade, timeoutMs: numb
         Rx.timeout(timeoutMs),
       ),
     );
+    // State changed — add a buffer to ensure the wallet fully propagated UTXO updates
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
   } catch {
-    // Timeout is acceptable — the wallet may already be up-to-date.
-    // Fall back to a fixed delay to give the node time to propagate.
+    // Timeout is acceptable — the wallet may have already processed the block
+    // before we captured the initial snapshot. Use a generous delay for CI/Docker
+    // environments where node propagation and wallet sync are slower.
     logger.info('waitForWalletRefresh: timed out waiting for state change, adding fixed delay');
-    await new Promise((resolve) => setTimeout(resolve, 5_000));
+    await new Promise((resolve) => setTimeout(resolve, 15_000));
   }
 };
 
