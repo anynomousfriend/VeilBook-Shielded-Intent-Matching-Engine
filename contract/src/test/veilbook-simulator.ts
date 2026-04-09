@@ -127,7 +127,9 @@ export class VeilbookSimulator {
   }
 
   public getBalance(): bigint {
-    const result = this.contract.impureCircuits.get_balance(this.circuitContext);
+    const result = this.contract.impureCircuits.get_balance(
+      this.circuitContext
+    );
     this.circuitContext = result.context;
     return result.result;
   }
