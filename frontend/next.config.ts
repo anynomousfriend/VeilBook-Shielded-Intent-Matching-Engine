@@ -1,4 +1,9 @@
 import type {NextConfig} from 'next';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -21,10 +26,39 @@ const nextConfig: NextConfig = {
     ],
   },
   output: 'standalone',
-  transpilePackages: ['motion'],
-  webpack: (config, {dev}) => {
+  transpilePackages: ['motion', '@midnight-ntwrk/midnight-js-indexer-public-data-provider'],
+  webpack: (config, {dev, isServer}) => {
+    // Specify that the target environment supports async functions
+    // This solves the root cause of the asyncWebAssembly 'async/await' warning
+    config.output.environment = {
+      ...config.output.environment,
+      asyncFunction: true,
+    };
+
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+      layers: true,
+    };
+    
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'isomorphic-ws': path.resolve(__dirname, 'lib/ws-polyfill.js'),
+    };
+
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+        stream: false,
+        os: false,
+      };
+    }
+
     // HMR is disabled in AI Studio via DISABLE_HMR env var.
-    // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+    // Do not modify—file watching is disabled to prevent flickering during agent edits.
     if (dev && process.env.DISABLE_HMR === 'true') {
       config.watchOptions = {
         ignored: /.*/,
