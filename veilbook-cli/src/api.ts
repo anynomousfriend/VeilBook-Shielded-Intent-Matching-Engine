@@ -334,6 +334,53 @@ export const waitForWalletRefresh = async (wallet: WalletFacade, timeoutMs: numb
   }
 };
 
+/**
+ * Traverse an error's cause chain looking for Midnight node error 194
+ * (consumed UTXO). This error occurs when the wallet tries to spend a dust
+ * coin that was already consumed by a previous transaction.
+ */
+const isConsumedUtxoError = (e: unknown): boolean => {
+  let current: unknown = e;
+  let depth = 0;
+  while (current instanceof Error && depth < 10) {
+    if (current.message.includes('Custom error: 194')) return true;
+    current = current.cause;
+    depth++;
+  }
+  return String(e).includes('Custom error: 194');
+};
+
+/**
+ * Retry a transaction that may fail due to stale UTXOs (error 194).
+ *
+ * After a state-changing tx (deploy, submit_order, etc.), the wallet's
+ * internal coin set may remain stale until the indexer delivers the block
+ * update via WebSocket. If the next tx selects consumed coins, the node
+ * rejects with error 194. This utility catches that specific error, waits
+ * for the wallet to sync, and retries.
+ */
+export const retryOnConsumedUtxo = async <T>(
+  wallet: WalletFacade,
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+): Promise<T> => {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!isConsumedUtxoError(e) || attempt === maxRetries) throw e;
+
+      const delay = 15_000 * (attempt + 1);
+      logger.info(
+        `Transaction failed with consumed UTXO (attempt ${attempt + 1}/${maxRetries}), waiting ${delay / 1000}s...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  // TypeScript exhaustiveness — loop always returns or throws
+  throw new Error('retryOnConsumedUtxo: exhausted retries');
+};
+
 export const waitForFunds = (wallet: WalletFacade): Promise<bigint> =>
   Rx.firstValueFrom(
     wallet.state().pipe(
