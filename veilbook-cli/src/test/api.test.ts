@@ -26,7 +26,7 @@ describe('Veilbook API E2E', () => {
     'can deploy and interact with the contract',
     async () => {
       const walletCtx = await testEnv.getWallet();
-      const providers = await api.configureProviders(walletCtx, (testEnv as any).testConfig.dappConfig);
+      const providers = await api.configureProviders(walletCtx, testEnv.testConfig.dappConfig);
 
       // ownPublicKey() in circuits returns the coin public key, so use that as the owner
       const ownerBytes = await api.getCoinPublicKeyBytes(walletCtx);

@@ -352,8 +352,8 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
           let recipientBytes: Uint8Array;
           if (recipientInput.startsWith('mn_addr')) {
             const parsed = MidnightBech32m.parse(recipientInput);
-            const decoded = parsed.decode(UnshieldedAddress, getNetworkId()) as any;
-            // The decoded object has a `data` buffer
+            // UnshieldedAddress wraps a Uint8Array exposed via `.data`
+            const decoded = parsed.decode(UnshieldedAddress, getNetworkId()) as unknown as { data: Uint8Array };
             recipientBytes = new Uint8Array(decoded.data);
           } else {
             recipientBytes = Buffer.from(recipientInput.replace(/^0x/, ''), 'hex');

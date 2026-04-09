@@ -83,9 +83,9 @@ export const getVeilbookLedgerState = async (
 ): Promise<Veilbook.Ledger | null> => {
   assertIsContractAddress(contractAddress);
   logger.info('Checking contract ledger state...');
-  const state = (await providers.publicDataProvider.queryContractState(contractAddress).then((contractState) => {
-    return contractState != null ? Veilbook.ledger(contractState.data) : null;
-  })) as Veilbook.Ledger | null;
+  const state = await providers.publicDataProvider.queryContractState(contractAddress).then((contractState) => {
+    return contractState != null ? (Veilbook.ledger(contractState.data) as Veilbook.Ledger) : null;
+  });
   logger.info(`Ledger state: ${JSON.stringify(state, (_, v) => (typeof v === 'bigint' ? v.toString() : v))}`);
   return state;
 };
@@ -281,7 +281,7 @@ export const createWalletAndMidnightProvider = async (
       return ctx.wallet.finalizeRecipe(recipe);
     },
     submitTx(tx) {
-      return ctx.wallet.submitTransaction(tx) as any;
+      return ctx.wallet.submitTransaction(tx) as Promise<string>;
     },
   };
 };
@@ -303,10 +303,7 @@ export const waitForSync = (wallet: WalletFacade) =>
  * (coin count changes as old dust is consumed and new dust matures). Falls back
  * to a simple delay if the state never changes within the timeout.
  */
-export const waitForWalletRefresh = async (
-  wallet: WalletFacade,
-  timeoutMs: number = 30_000,
-): Promise<void> => {
+export const waitForWalletRefresh = async (wallet: WalletFacade, timeoutMs: number = 30_000): Promise<void> => {
   const initial = await Rx.firstValueFrom(wallet.state().pipe(Rx.filter((s) => s.isSynced)));
   const initialDustCount = initial.dust.availableCoins.length;
   const initialPendingCount = initial.dust.pendingCoins.length;
@@ -319,8 +316,7 @@ export const waitForWalletRefresh = async (
           // The wallet has processed a new block when dust counts shift
           // (consumed coins disappear, new coins appear or pending -> available)
           return (
-            s.dust.availableCoins.length !== initialDustCount ||
-            s.dust.pendingCoins.length !== initialPendingCount
+            s.dust.availableCoins.length !== initialDustCount || s.dust.pendingCoins.length !== initialPendingCount
           );
         }),
         Rx.timeout(timeoutMs),
@@ -470,10 +466,12 @@ const registerForDustGeneration = async (
 
 const printWalletSummary = (seed: string, state: any, unshieldedKeystore: UnshieldedKeystore) => {
   const networkId = getNetworkId();
-  const unshieldedBalance = state.unshielded.balances[unshieldedToken().raw] ?? 0n;
+  const unshieldedBalance = (state.unshielded.balances[unshieldedToken().raw] as bigint | undefined) ?? 0n;
 
-  const coinPubKey = ShieldedCoinPublicKey.fromHexString(state.shielded.coinPublicKey.toHexString());
-  const encPubKey = ShieldedEncryptionPublicKey.fromHexString(state.shielded.encryptionPublicKey.toHexString());
+  const coinPubKey = ShieldedCoinPublicKey.fromHexString(state.shielded.coinPublicKey.toHexString() as string);
+  const encPubKey = ShieldedEncryptionPublicKey.fromHexString(
+    state.shielded.encryptionPublicKey.toHexString() as string,
+  );
   const shieldedAddress = MidnightBech32m.encode(networkId, new ShieldedAddress(coinPubKey, encPubKey)).toString();
 
   const DIV = '──────────────────────────────────────────────────────────────';

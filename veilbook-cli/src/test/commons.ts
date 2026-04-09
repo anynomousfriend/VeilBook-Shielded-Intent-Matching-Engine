@@ -107,7 +107,7 @@ export class TestEnvironment {
   private dockerEnv: DockerComposeEnvironment | undefined;
   private container: StartedTestContainer | undefined;
   private walletCtx: WalletContext | undefined;
-  private testConfig: TestConfiguration;
+  public testConfig: TestConfiguration;
 
   constructor(logger: Logger) {
     this.logger = logger;
