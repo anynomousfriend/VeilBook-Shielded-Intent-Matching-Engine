@@ -136,4 +136,20 @@ describe("Veilbook smart contract", () => {
     );
     expect(finalLedger.token_locks.member(commitment)).toBe(false);
   });
+
+  it("can transfer tokens", () => {
+    const simulator = new VeilbookSimulator();
+    const recipient = new Uint8Array(32).fill(1);
+    const amount = 500n;
+    const initialBalance = simulator.getBalance();
+
+    // Initial balance should be 0 because tokens were minted to the owner, not the contract
+    expect(initialBalance).toEqual(0n);
+
+    simulator.transferTokens(amount, recipient);
+
+    // After transfer, contract balance should still be 0 (received and then sent)
+    const finalBalance = simulator.getBalance();
+    expect(finalBalance).toEqual(0n);
+  });
 });

@@ -5,13 +5,21 @@ import { useWallet } from "@/contexts/WalletContext";
 import { Wallet, Loader2, LogOut } from "lucide-react";
 
 export default function WalletConnect() {
-  const { isConnected, isConnecting, address, error, connect, disconnect } = useWallet();
+  const { isConnected, isConnecting, isReconnecting, address, error, connect, disconnect } = useWallet();
 
   const formatAddress = (addr: string) => {
     if (!addr) return "";
-    // Format to 0xABCD...1234
     return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
   };
+
+  if (isReconnecting) {
+    return (
+      <button disabled className="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono text-[10px] tracking-widest cursor-not-allowed">
+        <Loader2 size={12} className="animate-spin" />
+        RECONNECTING...
+      </button>
+    );
+  }
 
   if (isConnecting) {
     return (

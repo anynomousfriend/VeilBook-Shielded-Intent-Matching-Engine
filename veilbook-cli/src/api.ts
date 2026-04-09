@@ -227,6 +227,18 @@ export const getContractBalance = async (
   return finalizedTxData.private.result as bigint;
 };
 
+export const transferTokens = async (
+  providers: VeilbookProviders,
+  contract: DeployedVeilbookContract,
+  amount: bigint,
+  recipientAddr: Uint8Array,
+): Promise<FinalizedTxData> => {
+  logger.info(`Transferring ${amount} tokens...`);
+  const finalizedTxData = await contract.callTx.transfer_tokens(amount, { bytes: recipientAddr });
+  logger.info(`Transaction ${finalizedTxData.public.txId} added in block ${finalizedTxData.public.blockHeight}`);
+  return finalizedTxData.public;
+};
+
 export const displayVeilbookStatus = async (
   providers: VeilbookProviders,
   veilbookContract: DeployedVeilbookContract,

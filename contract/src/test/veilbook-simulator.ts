@@ -125,10 +125,18 @@ export class VeilbookSimulator {
   }
 
   public getBalance(): bigint {
-    const result = this.contract.impureCircuits.get_balance(
-      this.circuitContext
+    const result = this.contract.impureCircuits.get_balance(this.circuitContext);
+    this.circuitContext = result.context;
+    return result.result;
+  }
+
+  public transferTokens(amount: bigint, recipientAddr: Uint8Array): Ledger {
+    const result = this.contract.impureCircuits.transfer_tokens(
+      this.circuitContext,
+      amount,
+      { bytes: recipientAddr }
     );
     this.circuitContext = result.context;
-    return result.result as bigint;
+    return ledger(this.circuitContext.currentQueryContext.state);
   }
 }

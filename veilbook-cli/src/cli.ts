@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { getNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import { MidnightBech32m, UnshieldedAddress } from '@midnight-ntwrk/wallet-sdk-address-format';
 import { type WalletContext } from './api';
 import { stdin as input, stdout as output } from 'node:process';
 import { createInterface, type Interface } from 'node:readline/promises';
@@ -75,12 +77,13 @@ const veilbookMenu = (dustBalance: string) => `
 ${DIVIDER}
   Veilbook Actions${dustBalance ? `                     DUST: ${dustBalance}` : ''}
 ${DIVIDER}
-  [1] Submit Order A
-  [2] Submit Order B
-  [3] Match Orders
+  [1] Submit Order
+  [2] Match Orders
+  [3] Cancel Order
   [4] Display Status
   [5] Monitor DUST
-  [6] Exit
+  [6] Transfer Tokens
+  [7] Exit
 ${'─'.repeat(62)}
 > `;
 
@@ -338,8 +341,33 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
         }
         break;
 
-      case '6':
+      case '5':
         await startDustMonitor(walletCtx.wallet, rli);
+        break;
+      case '6':
+        try {
+          const amountStr = await rli.question('  Amount to transfer: ');
+          const recipientInput = await rli.question('  Recipient address (hex or mn_addr...): ');
+          const amount = BigInt(amountStr);
+          
+          let recipientBytes: Uint8Array;
+          if (recipientInput.startsWith('mn_addr')) {
+            const parsed = MidnightBech32m.parse(recipientInput);
+            const decoded = parsed.decode(UnshieldedAddress, getNetworkId()) as any;
+            // The decoded object has a `data` buffer
+            recipientBytes = new Uint8Array(decoded.data);
+          } else {
+            recipientBytes = Buffer.from(recipientInput.replace(/^0x/, ''), 'hex');
+          }
+
+          await api.withStatus(`Transferring ${amount} tokens`, () =>
+            api.transferTokens(providers, veilbookContract, amount, recipientBytes),
+          );
+          console.log(`  ✓ Tokens transferred.\n`);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.log(`  ✗ Failed to transfer tokens: ${msg}\n`);
+        }
         break;
       case '7':
         return;

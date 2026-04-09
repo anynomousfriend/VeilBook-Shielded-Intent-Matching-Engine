@@ -127,3 +127,10 @@ export circuit cancel_order(commitment: Bytes<32>): [] {
 export circuit get_balance(): Uint<128> {
   return unshieldedBalance(token_color);
 }
+
+export circuit transfer_tokens(amount: Uint<64>, recipient: UserAddress): [] {
+  const d_amount = disclose(amount);
+  const d_recipient = disclose(recipient);
+  receiveUnshielded(token_color, d_amount as Uint<128>);
+  sendUnshielded(token_color, d_amount as Uint<128>, right<ContractAddress, UserAddress>(d_recipient));
+}

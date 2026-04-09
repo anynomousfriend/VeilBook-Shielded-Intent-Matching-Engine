@@ -4,7 +4,21 @@ import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { InMemoryPrivateStateProvider } from './in-memory-private-state-provider';
 import { VeilbookPrivateStateId, type VeilbookCircuits, type VeilbookProviders } from '../../veilbook-cli/src/common-types';
-import { PreprodConfig, PreviewConfig } from '../../veilbook-cli/src/config';
+
+const NETWORK_CONFIGS = {
+  preview: {
+    indexer: 'https://indexer.preview.midnight.network/api/v3/graphql',
+    indexerWS: 'wss://indexer.preview.midnight.network/api/v3/graphql/ws',
+    node: 'https://rpc.preview.midnight.network',
+    proofServer: 'http://127.0.0.1:6300',
+  },
+  preprod: {
+    indexer: 'https://indexer.preprod.midnight.network/api/v3/graphql',
+    indexerWS: 'wss://indexer.preprod.midnight.network/api/v3/graphql/ws',
+    node: 'https://rpc.preprod.midnight.network',
+    proofServer: 'http://127.0.0.1:6300',
+  }
+};
 
 class FetchZkConfigProvider {
   constructor(private readonly baseUrl: string) {}
@@ -35,7 +49,7 @@ export const createBrowserProviders = (
   encryptionPublicKey: string,
   network: 'preview' | 'preprod' = 'preview'
 ): VeilbookProviders => {
-  const config = network === 'preview' ? new PreviewConfig() : new PreprodConfig();
+  const config = network === 'preview' ? NETWORK_CONFIGS.preview : NETWORK_CONFIGS.preprod;
 
   const privateStateProvider = new InMemoryPrivateStateProvider<typeof VeilbookPrivateStateId>();
   const publicDataProvider = indexerPublicDataProvider(config.indexer, config.indexerWS);
