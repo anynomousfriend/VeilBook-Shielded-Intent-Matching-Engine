@@ -1,0 +1,5 @@
+{
+  "installCommand": "npm install --prefix=.. && (cd .. && npm run build -w @midnight-ntwrk/veilbook-contract) && npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next"
+}
