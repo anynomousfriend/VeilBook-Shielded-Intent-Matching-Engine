@@ -43,27 +43,27 @@ export default function ThreeLogo() {
     const envScene = new THREE.Scene();
     envScene.background = new THREE.Color(0x020202); // Deep dark background
     
-    const lightGeo = new THREE.PlaneGeometry(60, 60);
-    const stripGeo = new THREE.PlaneGeometry(10, 100);
+    const lightGeo = new THREE.PlaneGeometry(120, 120); // Larger softbox
+    const stripGeo = new THREE.PlaneGeometry(20, 150); // Wider strips
     
     const mainLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const rimLightMat = new THREE.MeshBasicMaterial({ color: 0x888888 }); // Softer fill reflection
+    const rimLightMat = new THREE.MeshBasicMaterial({ color: 0xcccccc }); // Brighter rim reflection
     
     // Large Overhead/Left Softbox for the main broad highlight
     const panel1 = new THREE.Mesh(lightGeo, mainLightMat);
-    panel1.position.set(-30, 40, 30);
+    panel1.position.set(-40, 60, 30);
     panel1.lookAt(0, 0, 0);
     envScene.add(panel1);
 
     // Right Strip Light for a sharp edge reflection
     const panel2 = new THREE.Mesh(stripGeo, mainLightMat);
-    panel2.position.set(40, 0, 10);
+    panel2.position.set(50, 0, 10);
     panel2.lookAt(0, 0, 0);
     envScene.add(panel2);
 
     // Back-Left Rim Light for extra depth
     const panel3 = new THREE.Mesh(stripGeo, rimLightMat);
-    panel3.position.set(-40, -20, -20);
+    panel3.position.set(-50, -30, -30);
     panel3.lookAt(0, 0, 0);
     envScene.add(panel3);
 
@@ -78,13 +78,16 @@ export default function ThreeLogo() {
 
     // --- Materials ---
     const currentMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0x0a0a0a,      // Lifted slightly from pure black for better volume visibility
-        metalness: 1.0,       // 100% metallic
-        roughness: 0.08,      // Very smooth, but allows slight light spread
-        clearcoat: 0.3,       // Subtle extra polish layer
-        clearcoatRoughness: 0.02,
+        color: 0x000000,      // Deep obsidian black core
+        metalness: 0.35,      // Increased metalness for a denser, smokier look
+        roughness: 0.15,      // Slightly frosted to catch and diffuse light
+        transmission: 0.8,    // Lowered transmission for tinted, less clear glass
+        ior: 1.5,             // Index of refraction for glass (bends light inside the volume)
+        thickness: 2.5,       // Simulated volume for refraction
+        clearcoat: 1.0,       // Extremely polished outer layer
+        clearcoatRoughness: 0.05,
         envMap: cubeRenderTarget.texture,
-        envMapIntensity: 2.8  // Boosted slightly for richer reflections
+        envMapIntensity: 2.5  // Toned down contrast reflections from the studio lights
     });
 
     const mainGroup = new THREE.Group();
@@ -176,10 +179,10 @@ export default function ThreeLogo() {
     mainGroup.rotation.z = -0.1;
 
     // --- Lighting ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); 
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4); // Lower ambient to increase contrast
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfff5ea, 2.2); 
+    const dirLight = new THREE.DirectionalLight(0xfff5ea, 2.0); 
     dirLight.position.set(-15, 25, 20);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
@@ -194,20 +197,22 @@ export default function ThreeLogo() {
     dirLight.shadow.bias = -0.001;
     scene.add(dirLight);
 
-    const fillLight = new THREE.DirectionalLight(0xeaf2ff, 1.2); 
+    const fillLight = new THREE.DirectionalLight(0xeaf2ff, 1.0); 
     fillLight.position.set(20, 5, 15);
     scene.add(fillLight);
 
-    const frontLight = new THREE.DirectionalLight(0xfff8f0, 0.8);
+    const frontLight = new THREE.DirectionalLight(0xfff8f0, 0.5); // Less front fill
     frontLight.position.set(0, 0, 30);
     scene.add(frontLight);
 
-    const backRimLight1 = new THREE.PointLight(0xffffff, 1.0, 100);
-    backRimLight1.position.set(-20, 20, -20);
+    // Powerful back rim lights to carve the glass out of the black background
+    // We use DirectionalLight instead of PointLight to avoid distance falloff issues
+    const backRimLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
+    backRimLight1.position.set(-20, 20, -30);
     scene.add(backRimLight1);
 
-    const backRimLight2 = new THREE.PointLight(0xffffff, 1.0, 100);
-    backRimLight2.position.set(20, -20, -20);
+    const backRimLight2 = new THREE.DirectionalLight(0xffffff, 1.5);
+    backRimLight2.position.set(20, -20, -30);
     scene.add(backRimLight2);
 
     // --- Animation / Render Loop ---

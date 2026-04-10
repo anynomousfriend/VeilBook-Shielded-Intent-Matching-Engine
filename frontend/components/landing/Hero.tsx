@@ -5,6 +5,9 @@ import ThreeLogo from './ThreeLogo';
 export default function Hero() {
   return (
     <section className="relative w-full h-screen flex items-center justify-center bg-[#050505] overflow-hidden hero-section">
+      {/* Stage Light for 3D object */}
+      <div className="absolute top-1/2 right-0 md:right-[10%] w-[400px] md:w-[600px] h-[400px] md:h-[600px] -translate-y-1/2 bg-white/[0.015] rounded-full blur-[100px] pointer-events-none z-0" />
+
       {/* Background Grid */}
       <div className="absolute inset-0 z-0 pointer-events-none" style={{
         backgroundImage: `
