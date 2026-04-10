@@ -1,8 +1,8 @@
 import { Veilbook, type VeilbookPrivateState, witnesses } from '@midnight-ntwrk/veilbook-contract';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { CompiledContract } from '@midnight-ntwrk/compact-js';
-import type { VeilbookProviders, DeployedVeilbookContract } from '../../veilbook-cli/src/common-types';
-import { VeilbookPrivateStateId } from '../../veilbook-cli/src/common-types';
+import type { VeilbookProviders, DeployedVeilbookContract } from './common-types';
+import { VeilbookPrivateStateId } from './common-types';
 
 const veilbookCompiledContract = CompiledContract.make('veilbook', Veilbook.Contract).pipe(
   CompiledContract.withWitnesses(witnesses)

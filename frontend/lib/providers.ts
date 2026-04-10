@@ -5,7 +5,7 @@ import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-p
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { Transaction } from '@midnight-ntwrk/ledger-v8';
 import { InMemoryPrivateStateProvider } from './in-memory-private-state-provider';
-import { VeilbookPrivateStateId, type VeilbookCircuits, type VeilbookProviders } from '../../veilbook-cli/src/common-types';
+import { VeilbookPrivateStateId, type VeilbookCircuits, type VeilbookProviders } from './common-types';
 
 const toHex = (bytes: Uint8Array): string =>
   Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
