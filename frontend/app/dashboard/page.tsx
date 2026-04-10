@@ -13,7 +13,7 @@ import type { RelayOrderData, RelayMessage } from "@/lib/relay-client";
 import { useWallet } from "@/contexts/WalletContext";
 import { useRelay } from "@/hooks/use-relay";
 import { createBrowserProviders } from "@/lib/providers";
-import { deployVeilbook, joinVeilbook, submitOrder, matchOrders, type SubmitOrderResult } from "@/lib/veilbook-api";
+import { joinVeilbook, submitOrder, matchOrders, type SubmitOrderResult } from "@/lib/veilbook-api";
 import type { Veilbook } from "@midnight-ntwrk/veilbook-contract";
 
 // Per-trader ZK data (stored in refs — Uint8Arrays aren't serializable in React state)
@@ -201,10 +201,12 @@ function DashboardContent() {
   });
 
   const { isConnected: walletConnected, wallet, address, connect, coinPublicKey, encryptionPublicKey } = useWallet();
+  const providersRef = useRef<any | null>(null);
   const activeContractRef = useRef<any | null>(null);
   const myZkRef = useRef<TraderZkData | null>(null);
   const counterpartyZkRef = useRef<RelayOrderData | null>(null);
   const [copied, setCopied] = React.useState(false);
+  const [origin, setOrigin] = React.useState('');
 
   // Relay connection
   const handleRelayMessage = useCallback((msg: RelayMessage) => {
@@ -232,6 +234,11 @@ function DashboardContent() {
 
   const relay = useRelay(state.contractAddress, address, handleRelayMessage);
 
+  // Set origin after mount to avoid SSR/client hydration mismatch
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
   // Update URL when contract address changes
   useEffect(() => {
     if (state.contractAddress && !searchParams.get('contract')) {
@@ -249,15 +256,18 @@ function DashboardContent() {
       dispatch({ type: "START_PROVING", order });
 
       try {
-        const providers = createBrowserProviders(wallet, coinPublicKey as string, encryptionPublicKey as string, "preprod");
+        if (!providersRef.current) {
+          providersRef.current = createBrowserProviders(wallet, coinPublicKey as string, encryptionPublicKey as string, "preprod");
+        }
+        const providers = providersRef.current;
 
-        // Deploy or join contract
-        if (!activeContractRef.current && !state.contractAddress) {
-          activeContractRef.current = await deployVeilbook(providers, address);
-          const contractAddr = activeContractRef.current.deployTxData.public.contractAddress;
-          dispatch({ type: "SET_CONTRACT_ADDRESS", address: contractAddr });
-        } else if (!activeContractRef.current && state.contractAddress) {
-          activeContractRef.current = await joinVeilbook(providers, state.contractAddress);
+        // Always join the pre-deployed contract — any wallet can submit orders regardless of ownership
+        if (!activeContractRef.current) {
+          const addr = state.contractAddress;
+          if (!addr) {
+            throw new Error("No contract address set. Deploy a contract via the CLI and set NEXT_PUBLIC_VEILBOOK_ADDRESS.");
+          }
+          activeContractRef.current = await joinVeilbook(providers, addr);
         }
 
         const contract = activeContractRef.current!;
@@ -328,7 +338,10 @@ function DashboardContent() {
     relay.publishMatchAttempt(address);
 
     try {
-      const providers = createBrowserProviders(wallet, coinPublicKey as string, encryptionPublicKey as string, "preprod");
+      if (!providersRef.current) {
+        providersRef.current = createBrowserProviders(wallet, coinPublicKey as string, encryptionPublicKey as string, "preprod");
+      }
+      const providers = providersRef.current;
 
       // Reconstruct counterparty's Veilbook.Order from relay data
       const cpOrder: Veilbook.Order = {
@@ -338,10 +351,8 @@ function DashboardContent() {
       };
       const cpNonce = hexToBytes(cpData.nonce);
       const cpCommit = hexToBytes(cpData.commitment);
-      const cpAddr = hexToBytes(cpData.walletAddress);
-      const myAddr = hexToBytes(address);
 
-      // Determine buyer/seller based on direction
+      // Order A must be the BUY side, Order B the SELL side (contract assertion)
       const iAmBuyer = myZk.order.direction === 0n;
       const orderA = iAmBuyer ? myZk.order : cpOrder;
       const nonceA = iAmBuyer ? myZk.nonce : cpNonce;
@@ -349,15 +360,12 @@ function DashboardContent() {
       const orderB = iAmBuyer ? cpOrder : myZk.order;
       const nonceB = iAmBuyer ? cpNonce : myZk.nonce;
       const commitB = iAmBuyer ? cpCommit : myZk.commitment;
-      const buyerAddr = iAmBuyer ? myAddr : cpAddr;
-      const sellerAddr = iAmBuyer ? cpAddr : myAddr;
 
       const txData = await matchOrders(
         providers,
         activeContractRef.current,
         orderA, nonceA, commitA,
         orderB, nonceB, commitB,
-        buyerAddr, sellerAddr
       );
 
       dispatch({ type: "MATCH_SUCCESS", blockHeight: txData.blockHeight });
@@ -379,8 +387,8 @@ function DashboardContent() {
     state.myState === "ORDER_COMMITTED" &&
     state.counterpartyStatus === "ORDER_RECEIVED";
 
-  const shareUrl = state.contractAddress
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard?contract=${state.contractAddress}`
+  const shareUrl = state.contractAddress && origin
+    ? `${origin}/dashboard?contract=${state.contractAddress}`
     : null;
 
   const handleCopy = () => {

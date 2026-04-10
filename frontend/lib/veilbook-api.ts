@@ -8,13 +8,6 @@ const veilbookCompiledContract = CompiledContract.make('veilbook', Veilbook.Cont
   CompiledContract.withWitnesses(witnesses)
 );
 
-// Either<ContractAddress, UserAddress> helper — `right` wraps a UserAddress
-const toUserAddress = (bytes: Uint8Array) => ({
-  is_left: false,
-  left: { bytes: new Uint8Array(32) },
-  right: { bytes },
-});
-
 export const deployVeilbook = async (
   providers: VeilbookProviders,
   ownerAddrHex: string,
@@ -48,6 +41,7 @@ export interface SubmitOrderResult {
   order: Veilbook.Order;
 }
 
+// Any wallet can submit an order — no ownership check in the contract.
 export const submitOrder = async (
   providers: VeilbookProviders,
   contract: DeployedVeilbookContract,
@@ -71,7 +65,17 @@ export const submitOrder = async (
     submitOrder: { order, nonce: orderNonce },
   });
 
-  const tx = await contract.callTx.submit_order(sizeBigInt);
+  // submit_order() takes no arguments in the simplified contract
+  let tx;
+  try {
+    tx = await contract.callTx.submit_order();
+  } catch (err: any) {
+    console.error("submit_order failed. Full error:", err);
+    if (err.cause) {
+      console.error("Underlying cause:", err.cause);
+    }
+    throw err;
+  }
 
   return {
     txData: tx.public,
@@ -81,6 +85,7 @@ export const submitOrder = async (
   };
 };
 
+// Any wallet can trigger a match — no ownership check in the contract.
 export const matchOrders = async (
   providers: VeilbookProviders,
   contract: DeployedVeilbookContract,
@@ -90,8 +95,6 @@ export const matchOrders = async (
   orderB: Veilbook.Order,
   nonceB: Uint8Array,
   commitB: Uint8Array,
-  buyerAddr: Uint8Array,
-  sellerAddr: Uint8Array
 ) => {
   const address = contract.deployTxData.public.contractAddress;
   providers.privateStateProvider.setContractAddress(address);
@@ -101,21 +104,28 @@ export const matchOrders = async (
     ...currentState,
     matchOrderA: { order: orderA, nonce: nonceA },
     matchOrderB: { order: orderB, nonce: nonceB },
-    matchBuyerAddress: toUserAddress(buyerAddr),
-    matchSellerAddress: toUserAddress(sellerAddr),
   });
 
-  const tx = await contract.callTx.match_orders(commitA, commitB);
+  let tx;
+  try {
+    tx = await contract.callTx.match_orders(commitA, commitB);
+  } catch (err: any) {
+    console.error("match_orders failed. Full error:", err);
+    if (err.cause) {
+      console.error("Underlying cause:", err.cause);
+    }
+    throw err;
+  }
   return tx.public;
 };
 
+// Any wallet can cancel their own order — ownership proved via ZK commitment.
 export const cancelOrder = async (
   providers: VeilbookProviders,
   contract: DeployedVeilbookContract,
   order: Veilbook.Order,
   nonce: Uint8Array,
   commitment: Uint8Array,
-  refundAddr: Uint8Array
 ) => {
   const address = contract.deployTxData.public.contractAddress;
   providers.privateStateProvider.setContractAddress(address);
@@ -124,7 +134,6 @@ export const cancelOrder = async (
   await providers.privateStateProvider.set(VeilbookPrivateStateId, {
     ...currentState,
     cancelOrder: { order, nonce },
-    cancelUserAddress: toUserAddress(refundAddr),
   });
 
   const tx = await contract.callTx.cancel_order(commitment);

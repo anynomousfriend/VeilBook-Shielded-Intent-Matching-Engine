@@ -227,10 +227,6 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
   // Store local orders with their commitments
   const localOrders: { order: Veilbook.Order; nonce: Uint8Array; commitment: Uint8Array }[] = [];
 
-  // Get the user's unshielded address bytes for token operations
-  const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
-  const myAddressBytes = Buffer.from(myAddressHex, 'hex');
-
   const promptOrder = async (label: string): Promise<{ order: Veilbook.Order; nonce: Uint8Array }> => {
     console.log(`\n  --- ${label} ---`);
     const directionStr = await rli.question('  Direction (BUY/SELL): ');
@@ -278,7 +274,6 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
             break;
           }
 
-          // For v1, both buyer and seller are the same wallet (demo mode)
           await api.withStatus('Matching Orders', () =>
             api.matchOrders(
               providers,
@@ -289,8 +284,6 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
               entryB.nonce,
               entryA.commitment,
               entryB.commitment,
-              myAddressBytes,
-              myAddressBytes,
             ),
           );
           console.log(`  ✓ Orders matched.\n`);
@@ -308,7 +301,7 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
             break;
           }
           await api.withStatus('Cancelling Order', () =>
-            api.cancelOrder(providers, veilbookContract, entry.order, entry.nonce, entry.commitment, myAddressBytes),
+            api.cancelOrder(providers, veilbookContract, entry.order, entry.nonce, entry.commitment),
           );
           console.log(`  ✓ Order cancelled.\n`);
         } catch (e) {

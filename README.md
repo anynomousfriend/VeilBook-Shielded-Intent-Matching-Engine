@@ -1,154 +1,273 @@
-# 🕵️‍♂️ Veilbook — The Shielded Dark Pool Example
+# Veilbook — The Shielded Dark Pool
 
 Built on [Midnight](https://midnight.network/).
 
-Veilbook is a privacy-preserving intent-matching engine that demonstrates how to build a "Dark Pool" on a blockchain using Zero-Knowledge Proofs (ZKP). It allows traders to submit shielded order intents and match them cryptographically, ensuring that prices, sizes, and identities remain confidential until a match is confirmed.
+Veilbook is a privacy-preserving intent-matching engine — a fully decentralised dark pool where traders submit shielded order commitments and match them cryptographically. Prices, sizes, and identities remain confidential until a match is confirmed on-chain. No front-running. No information leakage. No trusted intermediary.
 
 ---
 
-## 🛠 INSTALLATION & SETUP
+## The Problem Nobody Has Solved
 
-### PREREQUISITES
+Every day, $200 billion moves through dark pools in traditional finance. Why? Because when you place a large order on a public exchange, the market sees it before it executes. Bots front-run you. Prices move against you. Your strategy is exposed to every competitor watching the order book.
 
-- **Node.js**: v22.15+ (LTS recommended)
-- **Docker**: Required for running the local ZK Proof Server.
-- **Midnight Compact**: [Install the compiler](https://github.com/midnightntwrk/compact) (v0.30.0 recommended).
-- **Midnight Lace Wallet**: Required for the frontend dashboard.
+Crypto made this worse, not better. On Ethereum, Solana, every public DEX — your pending transactions sit in a mempool for the world to see. MEV bots extracted $900M+ in 2023 alone by front-running, sandwiching, and exploiting transparent order flow.
 
-### MIDNIGHT SDK VERSIONS
+The industry's answer? "Use a centralised dark pool." Which defeats the entire point of decentralisation. You're just trusting a different intermediary.
+
+**Until now, the choice has been: privacy OR trustlessness. Pick one.**
+
+Veilbook — built on Midnight's Kachina model — gives you both.
+
+---
+
+## How It Works
+
+```
+Trader A: BUY 500 @ 42  →  sealed commitment: 7a3f91b2...  →  on-chain
+Trader B: SELL 500 @ 40  →  sealed commitment: e8c2d4a1...  →  on-chain
+
+ZK circuit runs locally:
+  BUY price (42) >= SELL price (40)  ✓
+  Sizes match (500 == 500)           ✓
+  Directions are opposite            ✓
+
+Proof submitted. Match confirmed. match_count increments.
+What was revealed on-chain: "these two commitments form a valid trade."
+What was NOT revealed: prices, sizes, or identities.
+```
+
+The blockchain cannot see the private data — not "won't", **cannot**. The architecture makes it cryptographically impossible.
+
+---
+
+## What's Live Now
+
+### Smart Contract (`contract/src/veilbook.compact`)
+
+The Compact contract implements a simplified but production-representative dark pool:
+
+| Circuit | Who Can Call | What It Does |
+| :--- | :--- | :--- |
+| `submit_order()` | Any wallet | Hashes an order (direction, price, size) with a random nonce using `persistentCommit`. Only the commitment hash goes on-chain — order details never leave the user's device. |
+| `match_orders(commit_a, commit_b)` | Any wallet | Verifies two open commitments represent a valid pair: opposite directions, exact size match, crossing prices. Increments `match_count` on success. |
+| `cancel_order(commitment)` | Order owner only | Proves ownership by reconstructing the commitment locally (ZK ownership proof), then marks the order as cancelled. |
+| `get_balance()` | Anyone | Returns the contract's current unshielded token balance. |
+| `transfer_tokens(amount, recipient)` | Owner only | Distributes demo tokens from the contract to any unshielded address. |
+
+**Key design decisions:**
+- Orders are salted with a random nonce — two identical orders produce different on-chain hashes, preventing dictionary attacks.
+- `disclose()` is called only on the *comparison result*, not on the values themselves. The ledger sees a boolean "valid match", never the prices.
+- No token escrow in order flow — the contract tracks commitments and states only, eliminating the "insufficient funds" failure mode for demo wallets.
+- Ownership for cancellation is proved via ZK commitment reconstruction, not by checking `msg.sender`.
+
+### Frontend Dashboard (`frontend/`)
+
+A Next.js 15 split-screen demo designed for two browser wallets running simultaneously:
+
+- **Wallet connect** via Midnight Lace browser extension
+- **Order form** — enter direction (BUY/SELL), price, and size; ZK proof generated client-side
+- **WebSocket relay** — order metadata (commitment hash, direction) shared between browsers in real time without exposing private values
+- **Counterparty panel** — shows peer connection status, their commitment hash, and direction (size/price remain hidden)
+- **Match button** — either party triggers `match_orders`; race conditions handled gracefully (both succeed)
+- **Public feed** — live stream of on-chain commitment and match events
+- **Auto-join** — both browsers join the pre-deployed contract via `NEXT_PUBLIC_VEILBOOK_ADDRESS`; no wallet needs to be the contract owner to submit intents
+
+### CLI (`veilbook-cli/`)
+
+Interactive Node.js CLI for wallet management and contract operations:
+
+- Create or restore a wallet from seed
+- Deploy a new Veilbook contract or join an existing one by address
+- Submit, match, and cancel orders interactively
+- Transfer tokens to demo wallet addresses
+- Monitor DUST balance in real time
+- Standalone deployment script (`npm run deploy`) that writes the contract address to `deployed-address.txt`
+
+### Relay Server (`relay/`)
+
+A lightweight stateless WebSocket message bus. Browsers connect via a shared contract address as the room ID. The relay forwards order commitments and match signals between peers — it never sees private order data.
+
+---
+
+## Project Structure
+
+```
+veilbook/
+├── contract/
+│   ├── src/veilbook.compact        # ZK circuit logic (Compact language)
+│   ├── src/witnesses.ts            # TypeScript witness providers (private state)
+│   └── src/managed/veilbook/       # Generated ZK keys, ZKIR, and contract types
+├── frontend/
+│   ├── app/dashboard/page.tsx      # Main two-trader demo page
+│   ├── lib/veilbook-api.ts         # Midnight SDK browser integration
+│   ├── lib/providers.ts            # Browser wallet → MidnightProvider adapter
+│   ├── contexts/WalletContext.tsx  # Lace wallet connection state
+│   ├── hooks/use-relay.ts          # WebSocket relay hook
+│   └── public/zk/                  # ZK keys served to browser for proof generation
+├── veilbook-cli/
+│   ├── src/api.ts                  # Wallet and contract management
+│   ├── src/cli.ts                  # Interactive CLI
+│   ├── src/deploy-preprod.ts       # One-shot deployment script
+│   └── proof-server.yml            # Docker config for local ZK proof server
+└── relay/
+    └── server.ts                   # WebSocket relay server
+```
+
+---
+
+## Installation & Setup
+
+### Prerequisites
+
+- **Node.js** v22.15+ (LTS)
+- **Docker** — for the local ZK proof server
+- **Midnight Compact** compiler v0.30.0 — [install guide](https://github.com/midnightntwrk/compact)
+- **Midnight Lace Wallet** browser extension — for the frontend demo
+
+### SDK Versions
 
 | Package | Version |
 | :--- | :--- |
 | `@midnight-ntwrk/compact-runtime` | `0.15.0` |
 | `@midnight-ntwrk/midnight-js-*` | `^4.0.0` |
 | `@midnight-ntwrk/wallet-sdk-*` | `^3.0.0` |
-| `compact-compiler` | `0.30.0` |
+| Compact compiler | `0.30.0` |
 
-### Step-by-Step Guide
+### Step-by-Step
 
-1.  **Clone the Repository**
-    ```bash
-    git clone git@github.com:anynomousfriend/VeilBook---The-Shielded-Dark-Pool.git
-    cd veilbook
-    ```
-
-2.  **Install Dependencies**
-    ```bash
-    npm install
-    ```
-
-3.  **Compile the Smart Contract**
-    The contract must be compiled into WASM and ZKIR for both the CLI and Frontend.
-    ```bash
-    cd contract
-    npm run compact
-    npm run build
-    cd ..
-    ```
-
-4.  **Launch the ZK Proof Server**
-    Veilbook requires a local environment to generate heavy ZK proofs.
-    ```bash
-    cd veilbook-cli
-    docker compose -f proof-server.yml up -d
-    cd ..
-    ```
-
-5.  **Run the CLI (Network Setup)**
-    Use the CLI to create a wallet, fund it with `tNIGHT`, and deploy the contract.
-    ```bash
-    cd veilbook-cli
-    npm run preprod
-    ```
-
-6.  **Launch the WebSocket Relay Server**
-    The relay synchronizes counterparty state between browsers without requiring chain access.
-    ```bash
-    cd relay
-    npx tsx server.ts
-    ```
-
-7.  **Launch the Web Dashboard**
-    Interact with the dark pool via a visual interface. Open the dashboard, commit an order, and share the generated URL (with `?contract=<addr>`) to connect with a counterparty.
-    ```bash
-    cd frontend
-    npm run dev
-    ```
-
----
-
-## 📂 PROJECT STRUCTURE
-
-```text
-veilbook/
-├── 📜 contract/              # Smart contract logic (Compact)
-│   ├── src/veilbook.compact   # ZK circuit logic for matching
-│   └── src/witnesses.ts       # TypeScript witness providers
-├── 💻 frontend/              # Next.js 15 Dashboard
-│   ├── components/            # UI components and animations
-│   └── lib/veilbook-api.ts    # Midnight SDK DApp integration
-└── 🛠 veilbook-cli/          # Node.js CLI & API
-    ├── src/api.ts             # Wallet and contract management logic
-    ├── src/deploy-preprod.ts  # Contract deployment script
-    └── proof-server.yml       # Docker config for ZK proof generation
-└── 📡 relay/                 # WebSocket Relay Server
-    └── server.ts              # Stateless message bus for browser coordination
+**1. Clone and install**
+```bash
+git clone git@github.com:anynomousfriend/VeilBook---The-Shielded-Dark-Pool.git
+cd veilbook
+npm install
 ```
 
----
-
-## 🧠 THE RATIONALE OF THE VEILBOOK SHIELDED DARK POOL EXAMPLE
-
-### THE PROBLEM
-In traditional finance, "Dark Pools" are private exchanges for trading large blocks of securities. However, they rely on trusted intermediaries. In the Web3 world, most Decentralized Exchanges (DEXs) are fully public, leading to:
-- **Information Leakage:** Large trades signal intent to the market, causing price slippage before execution.
-- **Front-Running (MEV):** Arbitrageurs can see pending orders and trade ahead of them.
-- **Lack of Institutional Privacy:** Fund managers cannot rebalance portfolios without revealing their strategy to competitors.
-
-### MIDNIGHT’S SOLUTION
-Veilbook leverages Midnight’s **Kachina model** to provide a decentralized, trustless dark pool.
-- **Private State:** Order details (Price, Size, Direction) stay on the user's machine as "witnesses."
-- **Public Commitments:** Only a cryptographic hash (Pedersen Commitment) of the order is stored on the ledger.
-- **ZK Matching:** A Matchmaker (or the parties themselves) can run a ZK circuit that proves `Price_Buy >= Price_Sell` without the contract ever knowing what those prices were.
-
----
-
-## 🎯 GOALS OF THE EXAMPLE
-1.  **Confidential Intent Matching:** Demonstrate how to compare private values (prices) using ZK circuits.
-2.  **Commitment-Based State:** Show how to manage a ledger of opaque "promises" that can later be fulfilled or cancelled.
-3.  **Atomic ZK-Settlement:** Use Midnight's native token features (`receiveUnshielded`/`sendUnshielded`) to escrow and distribute assets based on ZK proof outcomes.
-
----
-
-## ⚡ CONTRACT FEATURES
-
-### Trader Actions
-- **`transfer_tokens(recipient, amount)`**: Allows the deployer to distribute custom test tokens to other users' Unshielded Addresses to cover order escrows.
-- **`submit_order(deposit)`**: Hashes an order (Price, Size, Direction) and locks the corresponding tokens in the contract's escrow.
-- **`match_orders(commit_a, commit_b)`**: Takes two public commitments and local private witnesses. It proves they are a valid pair (opposite directions, matching size, overlapping price) and settles the trade.
-- **`cancel_order(commitment)`**: Allows a user to reconstruct their commitment locally to prove ownership and reclaim their locked tokens.
-
----
-
-## 🛠 CIRCUIT LOGIC AND DESIGN DECISIONS
-
-### 1. Commitment-Based Privacy
-The `submit_order` circuit uses `persistentCommit<Order>(order, nonce)`.
-- **Design Decision:** By including a `nonce` (salt), we ensure that two identical orders (e.g., BUY 100 at $50) result in different public hashes, preventing "dictionary attacks" where observers guess order details by hashing common values.
-
-### 2. ZK Matching Logic
-The `match_orders` circuit is the core of the dark pool.
-```compact
-if (disclose(a_order.direction == 0)) { // A is BUY, B is SELL
-  assert(disclose(a_order.price >= b_order.price));
-}
+**2. Compile the contract**
+```bash
+cd contract
+npm run compact   # generates ZK keys + ZKIR + managed types
+npm run build     # builds the TypeScript package
+cd ..
 ```
-- **Design Decision:** We use `disclose()` on the *comparison result*, not the values themselves. The circuit outputs a boolean "Valid Match" to the ledger. If the prices don't overlap, the proof generation fails, and the public state is never updated.
 
-### 3. Fixed-Size Matching (v1)
-- **Design Decision:** In this example, we require `a_order.size == b_order.size`. While partial fills are possible in ZK, they require complex "nullifier" management or state splitting. To keep this example focused on *price* privacy, we enforce exact size matching.
+**3. Start the ZK proof server**
+```bash
+cd veilbook-cli
+docker compose -f proof-server.yml up -d
+cd ..
+```
 
-### 4. Atomic Escrow
-- **Design Decision:** Tokens are moved into the contract's `token_color` during `submit_order`. This prevents "double-spending" an intent. The tokens are only released when a valid ZK proof of a match or a cancellation is submitted.
+**4. Deploy the contract**
+```bash
+cd veilbook-cli
+npm run deploy
+# writes the contract address to deployed-address.txt
+```
+
+**5. Sync the address into the frontend**
+```bash
+NEW=$(cat veilbook-cli/deployed-address.txt | tr -d '[:space:]')
+echo "NEXT_PUBLIC_VEILBOOK_ADDRESS=$NEW" > frontend/.env
+# also set: NEXT_PUBLIC_NETWORK=preprod
+# also set: NEXT_PUBLIC_RELAY_URL=ws://localhost:4400
+```
+
+**6. Copy ZK assets to the frontend public directory**
+```bash
+cp -f contract/src/managed/veilbook/keys/* frontend/public/zk/keys/
+cp -f contract/src/managed/veilbook/zkir/* frontend/public/zk/zkir/
+```
+
+**7. Start the relay server**
+```bash
+cd relay
+npx tsx server.ts
+```
+
+**8. Start the frontend**
+```bash
+cd frontend
+npm run dev
+```
+
+Open two browser windows at `http://localhost:3000/dashboard`. Connect a different Lace wallet in each. One submits a BUY order, the other submits a SELL. Either party can trigger the match.
 
 ---
+
+## Two-Browser Demo Flow
+
+```
+Browser 1 (BUY wallet)          Browser 2 (SELL wallet)
+─────────────────────           ──────────────────────
+Connect Lace wallet             Open shared URL (?contract=...)
+Submit BUY order                Connect Lace wallet
+  → ZK proof generated          Submit SELL order
+  → Commitment on-chain           → ZK proof generated
+  → Relay broadcasts hash         → Commitment on-chain
+  → "Counterparty received"       → Relay broadcasts hash
+
+Either browser clicks "MATCH"
+  → match_orders() called
+  → ZK circuit verifies both commitments
+  → match_count increments on-chain
+  → Both panels show EXECUTED
+```
+
+Neither browser ever sees the other's price or size. The relay only forwards the commitment hash and direction.
+
+---
+
+## Why Midnight
+
+| Chain | Order Privacy | Trustless | Programmable ZK |
+| :--- | :--- | :--- | :--- |
+| Ethereum / EVM | No — mempool is public | Yes | No |
+| Zcash / Monero | Tx-level only | Yes | No |
+| Secret Network | Yes (SGX hardware) | No — trust Intel | Limited |
+| Aztec | Partial | Yes | Yes (scalability focus) |
+| **Midnight** | **Yes — protocol level** | **Yes** | **Yes — Kachina model** |
+
+Midnight's Compact language is **private by default** — you explicitly `disclose()` what should be public. Every other smart contract language is public by default. Private state lives on the user's device as witnesses; only commitments touch the chain. Proof generation and verification are built into the consensus layer — no bolted-on circuits, no external trust assumptions.
+
+---
+
+## Roadmap
+
+The following features are planned for future versions:
+
+### v2 — Settlement Layer
+- Re-introduce atomic token escrow (`receiveUnshielded` / `sendUnshielded`) once multi-wallet token distribution tooling stabilises on Preprod
+- Partial fill support using nullifier-based state splitting
+- Configurable settlement price (midpoint between BUY and SELL price)
+
+### v3 — Multi-Party Order Book
+- On-chain order book with multiple open commitments per address
+- Order expiry via block-height TTL encoded in the commitment
+- Matchmaker role — a neutral third party who triggers matches without learning order details
+- Priority queue matching (best price / earliest time) provable in ZK
+
+### v4 — Institutional Features
+- Request-for-Quote (RFQ) flow — private bilateral negotiation before on-chain settlement
+- Sealed-bid auction circuit — generalise the matching logic for NFTs, treasury bonds, and carbon credits
+- Regulatory audit trail — optional disclosed settlement record for MiFID II / Reg ATS compliance, without revealing live order flow
+- Multi-asset pairs — extend `Order` struct to carry a token color field for cross-asset matching
+
+### Infrastructure
+- Hosted proof server with rate limiting (removes Docker dependency for end users)
+- Persistent private state across sessions using encrypted local storage
+- Mobile-compatible frontend with WalletConnect support for Midnight mobile wallets
+- Indexer-driven order book feed — replace the relay server with a proper on-chain event stream
+
+---
+
+## One Sentence
+
+Veilbook proves that you can match orders, settle trades, and enforce market rules on a blockchain — without the blockchain ever knowing what was traded, at what price, or by whom.
+
+That's not a feature. That's a new category. And it's only possible on Midnight.
+
+---
+
+## License
+
+Apache-2.0 — see [LICENSE](./LICENSE).

@@ -12,7 +12,6 @@ export struct Order {
 
 export ledger match_count: Counter;
 export ledger orders_state: Map<Bytes<32>, State>;
-export ledger token_locks: Map<Bytes<32>, Uint<64>>;
 export ledger token_color: Bytes<32>;
 export ledger owner: UserAddress;
 
@@ -25,42 +24,35 @@ witness getMatchOrderANonce(): Bytes<32>;
 witness getMatchOrderA(): Order;
 witness getMatchOrderBNonce(): Bytes<32>;
 witness getMatchOrderB(): Order;
-witness getMatchBuyerAddress(): Either<ContractAddress, UserAddress>;
-witness getMatchSellerAddress(): Either<ContractAddress, UserAddress>;
 
 // --- Cancel witnesses ---
 witness getCancelOrderNonce(): Bytes<32>;
 witness getCancelOrder(): Order;
-witness getCancelUserAddress(): Either<ContractAddress, UserAddress>;
 
 constructor(initial_supply: Uint<64>, initial_owner: UserAddress) {
   const domain = pad(32, "veilbook:token:v1");
   const d_supply = disclose(initial_supply);
-  
+
   owner = disclose(initial_owner);
   token_color = mintUnshieldedToken(domain, d_supply, left<ContractAddress, UserAddress>(kernel.self()));
 }
 
-export circuit submit_order(deposit: Uint<64>): Bytes<32> {
+// Submit a shielded order. The order details remain private; only the
+// commitment hash is recorded on-chain.
+export circuit submit_order(): Bytes<32> {
   const nonce = getOrderNonce();
   const order = getOrder();
   const commitment = persistentCommit<Order>(order, nonce);
 
   const d_commit = disclose(commitment);
-  const d_deposit = disclose(deposit);
   assert(!orders_state.member(d_commit), "Order already exists");
 
-  // Verify deposit matches order size
-  assert(disclose(order.size == deposit), "Deposit must equal order size");
-
-  // Escrow: absorb user's tokens into the contract
-  receiveUnshielded(token_color, d_deposit as Uint<128>);
-
   orders_state.insert(d_commit, State.OPEN);
-  token_locks.insert(d_commit, d_deposit);
   return d_commit;
 }
 
+// Match two open orders after verifying their ZK commitments and that
+// they are opposite sides with compatible price/size.
 export circuit match_orders(commit_a: Bytes<32>, commit_b: Bytes<32>): [] {
   const d_commit_a = disclose(commit_a);
   const d_commit_b = disclose(commit_b);
@@ -81,7 +73,7 @@ export circuit match_orders(commit_a: Bytes<32>, commit_b: Bytes<32>): [] {
   assert(d_commit_a == persistentCommit<Order>(a_order, a_nonce), "Order A commitment mismatch");
   assert(d_commit_b == persistentCommit<Order>(b_order, b_nonce), "Order B commitment mismatch");
 
-  // Matching logic
+  // Matching logic: opposite directions, same size, crossing prices
   assert(disclose(a_order.direction != b_order.direction), "Orders must be opposite directions");
   assert(disclose(a_order.size == b_order.size), "Size mismatch (v1 requires exact size match)");
 
@@ -91,45 +83,33 @@ export circuit match_orders(commit_a: Bytes<32>, commit_b: Bytes<32>): [] {
     assert(disclose(b_order.price >= a_order.price), "Price mismatch: BUY price < SELL price");
   }
 
-  // Settlement: send tokens to both parties
-  const settlement_size = disclose(a_order.size) as Uint<128>;
-  const buyer_addr = getMatchBuyerAddress();
-  const seller_addr = getMatchSellerAddress();
-  sendUnshielded(token_color, settlement_size, disclose(buyer_addr));
-  sendUnshielded(token_color, settlement_size, disclose(seller_addr));
-
   orders_state.insert(d_commit_a, State.MATCHED);
   orders_state.insert(d_commit_b, State.MATCHED);
 
   match_count.increment(1);
 }
 
+// Cancel an open order. The caller proves ownership by supplying the
+// private order data that reconstructs the on-chain commitment.
 export circuit cancel_order(commitment: Bytes<32>): [] {
   const d_commit = disclose(commitment);
 
   assert(orders_state.member(d_commit), "Order not found");
   assert(orders_state.lookup(d_commit) == State.OPEN, "Order not open");
 
-  // Verify caller owns the order by reconstructing the commitment
   const nonce = getCancelOrderNonce();
   const order = getCancelOrder();
   assert(d_commit == persistentCommit<Order>(order, nonce), "Commitment mismatch — not order owner");
 
-  // Refund locked tokens to user
-  const locked_amount = token_locks.lookup(d_commit) as Uint<128>;
-  const user_addr = getCancelUserAddress();
-  sendUnshielded(token_color, locked_amount, disclose(user_addr));
-
   orders_state.insert(d_commit, State.CANCELLED);
-  token_locks.remove(d_commit);
 }
 
-
-
+// Returns the contract's current unshielded token balance.
 export circuit get_balance(): Uint<128> {
   return unshieldedBalance(token_color);
 }
 
+// Owner-only: distribute demo tokens to a recipient address.
 export circuit transfer_tokens(amount: Uint<64>, recipient: UserAddress): [] {
   assert(ownPublicKey().bytes == owner.bytes, "Only the owner can transfer tokens");
   const d_amount = disclose(amount);

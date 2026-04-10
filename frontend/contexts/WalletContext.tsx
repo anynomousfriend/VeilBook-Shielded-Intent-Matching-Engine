@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 
 const CACHE_KEY = "veilbook_wallet_connection";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const NETWORK_ID = "preprod";
 
 interface CachedConnection {
   connected: boolean;
@@ -49,6 +50,37 @@ function clearCachedConnection() {
   localStorage.removeItem(CACHE_KEY);
 }
 
+/**
+ * Discover the first compatible Midnight wallet from window.midnight.
+ * Lace injects at window.midnight[<uuid>] — Object.values() enumerates them.
+ * We accept any wallet with apiVersion 4.x.
+ */
+function detectWalletProvider(): any | null {
+  const ns = (window as any)?.midnight;
+  if (!ns || typeof ns !== 'object') return null;
+
+  // Try well-known key first
+  if (ns.mnLace && typeof ns.mnLace.connect === 'function') return ns.mnLace;
+
+  // Scan all values for a compatible provider (documented pattern)
+  try {
+    const wallet = Object.values(ns).find(
+      (w: any) => w && typeof w === 'object' && typeof w.connect === 'function' && w.apiVersion?.startsWith('4.')
+    );
+    if (wallet) return wallet;
+  } catch { /* proxy may throw */ }
+
+  // Fallback: any value with connect()
+  try {
+    const wallet = Object.values(ns).find(
+      (w: any) => w && typeof w === 'object' && typeof w.connect === 'function'
+    );
+    if (wallet) return wallet;
+  } catch { /* */ }
+
+  return null;
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [api, setApi] = useState<any | null>(null);
   const [wallet, setWallet] = useState<any | null>(null);
@@ -60,30 +92,37 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const autoConnectAttempted = useRef(false);
+  const detectionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Detect injected wallet
+  // Poll for the extension until found
   useEffect(() => {
-    const checkWallet = () => {
-      const midnight = (window as any).midnight;
-      if (midnight) {
-        const provider = midnight.mnLace || midnight.nightly;
-        if (provider) {
-          setApi(provider);
-          return true;
-        }
+    let attempts = 0;
+    const maxAttempts = 20; // 10 seconds
+
+    const tryDetect = () => {
+      const provider = detectWalletProvider();
+      if (provider) {
+        console.log('[Veilbook] Wallet provider detected:', provider.name ?? 'unknown', 'v' + provider.apiVersion);
+        setApi(provider);
+        if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current);
+        return;
       }
-      return false;
+      attempts++;
+      if (attempts >= maxAttempts) {
+        console.warn('[Veilbook] No Midnight wallet detected after 10s');
+        if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current);
+      }
     };
 
-    // Give extensions a moment to inject
-    const timeout = setTimeout(() => {
-      checkWallet();
-    }, 500);
+    tryDetect();
+    detectionIntervalRef.current = setInterval(tryDetect, 500);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current);
+    };
   }, []);
 
-  const connectInternal = useCallback(async (currentApi: any, reconnecting: boolean) => {
+  const connectInternal = useCallback(async (provider: any, reconnecting: boolean) => {
     try {
       if (reconnecting) {
         setIsReconnecting(true);
@@ -92,28 +131,42 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
       setError(null);
 
-      const enabledWallet = await currentApi.enable();
-      setWallet(enabledWallet);
+      // DApp Connector API v4: connect(networkId)
+      const connectedApi = await provider.connect(NETWORK_ID);
+      setWallet(connectedApi);
 
-      const state = await enabledWallet.state();
-      setAddress(state.address);
-
+      // Get unshielded address for display
       try {
-        const addrs = await enabledWallet.getShieldedAddresses();
-        setCoinPublicKey(addrs.shieldedCoinPublicKey);
-        setEncryptionPublicKey(addrs.shieldedEncryptionPublicKey);
+        const addr = await connectedApi.getUnshieldedAddress();
+        // addr may be a string or an object with a toString()/address field — normalize
+        const addrStr = typeof addr === 'string' ? addr : (addr?.unshieldedAddress ?? addr?.address ?? addr?.toString?.() ?? String(addr));
+        console.log('[Veilbook] Unshielded address:', addrStr);
+        setAddress(addrStr);
+      } catch {
+        // Fallback: try state() for older API versions
+        try {
+          const state = await connectedApi.state();
+          const addr = state?.address;
+          setAddress(typeof addr === 'string' ? addr : String(addr ?? ''));
+        } catch { /* no address available */ }
+      }
+
+      // Get shielded keys for ZK operations
+      try {
+        const addrs = await connectedApi.getShieldedAddresses();
+        console.log('[Veilbook] Shielded addresses:', addrs);
+        const cpk = addrs.shieldedCoinPublicKey;
+        const epk = addrs.shieldedEncryptionPublicKey;
+        setCoinPublicKey(typeof cpk === 'string' ? cpk : (cpk?.toString?.() ?? null));
+        setEncryptionPublicKey(typeof epk === 'string' ? epk : (epk?.toString?.() ?? null));
       } catch {
         // Wallet may not support shielded addresses
       }
 
       setIsConnected(true);
       setCachedConnection();
-
-      // Subscribe to state changes
-      enabledWallet.stateEvents?.subscribe((newState: any) => {
-        setAddress(newState.address);
-      });
     } catch (err: any) {
+      console.error('[Veilbook] Wallet connection failed:', err);
       setError(err.message || "Failed to connect wallet.");
       setIsConnected(false);
       clearCachedConnection();
@@ -123,7 +176,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Auto-reconnect if cached
+  // Auto-reconnect if previously connected
   useEffect(() => {
     if (!api || autoConnectAttempted.current || isConnected) return;
     autoConnectAttempted.current = true;
@@ -135,11 +188,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [api, isConnected, connectInternal]);
 
   const connect = useCallback(async () => {
-    if (!api) {
-      setError("No Midnight wallet found. Please install Lace.");
+    // Re-probe at click time in case extension loaded late
+    const freshProvider = detectWalletProvider() ?? api;
+
+    if (!freshProvider) {
+      setError("Midnight wallet not found. Install the Lace wallet extension and refresh.");
       return;
     }
-    await connectInternal(api, false);
+
+    if (freshProvider !== api) setApi(freshProvider);
+    await connectInternal(freshProvider, false);
   }, [api, connectInternal]);
 
   const disconnect = useCallback(() => {

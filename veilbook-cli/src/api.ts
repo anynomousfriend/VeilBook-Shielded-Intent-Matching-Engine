@@ -48,7 +48,7 @@ import {
 import { type Config, contractConfig } from './config.js';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import { assertIsContractAddress, toHex } from '@midnight-ntwrk/midnight-js-utils';
-import { getNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import { setAllNetworkIds, getNetworkId } from './network-utils.js';
 import { CompiledContract } from '@midnight-ntwrk/compact-js';
 import { Buffer } from 'buffer';
 import {
@@ -136,19 +136,6 @@ const updatePrivateState = async (
   });
 };
 
-// Either<ContractAddress, UserAddress> helper — `right` wraps a UserAddress
-type EitherAddress = {
-  is_left: boolean;
-  left: { bytes: Uint8Array };
-  right: { bytes: Uint8Array };
-};
-
-const userAddress = (bytes: Uint8Array): EitherAddress => ({
-  is_left: false,
-  left: { bytes: new Uint8Array(32) },
-  right: { bytes },
-});
-
 export const submitOrder = async (
   providers: VeilbookProviders,
   contract: DeployedVeilbookContract,
@@ -165,7 +152,7 @@ export const submitOrder = async (
     submitOrder: { order, nonce: orderNonce },
   });
 
-  const finalizedTxData = await contract.callTx.submit_order(size);
+  const finalizedTxData = await contract.callTx.submit_order();
   logger.info(`Transaction ${finalizedTxData.public.txId} added in block ${finalizedTxData.public.blockHeight}`);
   // Circuit returns Bytes<32> (the commitment) — available on private.result
   const commitment = finalizedTxData.private.result as Uint8Array;
@@ -181,16 +168,12 @@ export const matchOrders = async (
   bNonce: Uint8Array,
   commitA: Uint8Array,
   commitB: Uint8Array,
-  buyerAddr: Uint8Array,
-  sellerAddr: Uint8Array,
 ): Promise<FinalizedTxData> => {
   logger.info('Matching orders...');
   const address = contract.deployTxData.public.contractAddress;
   await updatePrivateState(providers, address, {
     matchOrderA: { order: orderA, nonce: aNonce },
     matchOrderB: { order: orderB, nonce: bNonce },
-    matchBuyerAddress: userAddress(buyerAddr),
-    matchSellerAddress: userAddress(sellerAddr),
   });
 
   const finalizedTxData = await contract.callTx.match_orders(commitA, commitB);
@@ -204,13 +187,11 @@ export const cancelOrder = async (
   order: Veilbook.Order,
   nonce: Uint8Array,
   commitment: Uint8Array,
-  refundAddr: Uint8Array,
 ): Promise<FinalizedTxData> => {
   logger.info('Cancelling order...');
   const address = contract.deployTxData.public.contractAddress;
   await updatePrivateState(providers, address, {
     cancelOrder: { order, nonce },
-    cancelUserAddress: userAddress(refundAddr),
   });
 
   const finalizedTxData = await contract.callTx.cancel_order(commitment);
@@ -593,6 +574,18 @@ export const getCoinPublicKeyBytes = async (ctx: WalletContext): Promise<Uint8Ar
 };
 
 export const configureProviders = async (ctx: WalletContext, config: Config) => {
+  // Ensure network ID is set for both ESM and CJS before creating providers
+  let networkId: string;
+  if (config.indexer.includes('preprod')) {
+    networkId = 'preprod';
+  } else if (config.indexer.includes('preview')) {
+    networkId = 'preview';
+  } else {
+    networkId = 'undeployed';
+  }
+  setAllNetworkIds(networkId);
+  logger.info(`Network ID set to: ${networkId} (verified: ${getNetworkId()})`);
+
   const walletAndMidnightProvider = await createWalletAndMidnightProvider(ctx);
   const zkConfigProvider = new NodeZkConfigProvider<VeilbookCircuits>(contractConfig.zkConfigPath);
   const accountId = walletAndMidnightProvider.getCoinPublicKey();

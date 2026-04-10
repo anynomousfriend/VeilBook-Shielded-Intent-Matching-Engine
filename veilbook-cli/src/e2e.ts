@@ -24,8 +24,7 @@ async function runTest() {
   try {
     console.log('Building wallet...');
     const walletCtx = await api.buildWalletAndWaitForFunds(config, GENESIS_MINT_WALLET_SEED);
-    const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
-    const myAddressBytes = Buffer.from(myAddressHex, 'hex');
+
 
     console.log('Configuring providers...');
     const providers = await api.configureProviders(walletCtx, config);
@@ -59,8 +58,6 @@ async function runTest() {
       nonceB,
       resA.commitment,
       resB.commitment,
-      myAddressBytes,
-      myAddressBytes,
     );
 
     console.log('Fetching status...');

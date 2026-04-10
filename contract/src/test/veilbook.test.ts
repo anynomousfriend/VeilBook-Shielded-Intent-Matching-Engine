@@ -19,7 +19,6 @@ describe("Veilbook smart contract", () => {
     expect(l0.match_count).toEqual(l1.match_count);
     expect(l0.token_color).toEqual(l1.token_color);
     expect(l0.orders_state.size()).toEqual(l1.orders_state.size());
-    expect(l0.token_locks.size()).toEqual(l1.token_locks.size());
   });
 
   it("properly initializes ledger state", () => {
@@ -34,7 +33,6 @@ describe("Veilbook smart contract", () => {
     // BUY 500 @ 42
     const { ledger, commitment } = simulator.submitOrder(0n, 42n, 500n, nonceA);
     expect(ledger.orders_state.lookup(commitment)).toEqual(State.OPEN);
-    expect(ledger.token_locks.lookup(commitment)).toEqual(500n);
   });
 
   it("submits Order B correctly", () => {
@@ -42,7 +40,6 @@ describe("Veilbook smart contract", () => {
     // SELL 500 @ 40
     const { ledger, commitment } = simulator.submitOrder(1n, 40n, 500n, nonceB);
     expect(ledger.orders_state.lookup(commitment)).toEqual(State.OPEN);
-    expect(ledger.token_locks.lookup(commitment)).toEqual(500n);
   });
 
   it("matches orders correctly", () => {
@@ -128,13 +125,11 @@ describe("Veilbook smart contract", () => {
     const finalLedger = simulator.cancelOrder(
       order,
       nonceA,
-      commitment,
-      userAddr
+      commitment
     );
     expect(finalLedger.orders_state.lookup(commitment)).toEqual(
       State.CANCELLED
     );
-    expect(finalLedger.token_locks.member(commitment)).toBe(false);
   });
 
   it("can transfer tokens", () => {

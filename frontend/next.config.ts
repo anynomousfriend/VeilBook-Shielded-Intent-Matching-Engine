@@ -41,6 +41,15 @@ const nextConfig: NextConfig = {
       layers: true,
     };
     
+    // Force all @midnight-ntwrk packages to resolve from the frontend's
+    // node_modules. The contract is linked via file:../contract, so its
+    // imports would otherwise walk up to the root workspace node_modules,
+    // creating a second ChargedState WASM class that fails instanceof checks.
+    config.resolve.modules = [
+      path.resolve(__dirname, 'node_modules'),
+      'node_modules',
+    ];
+
     config.resolve.alias = {
       ...config.resolve.alias,
       'isomorphic-ws': path.resolve(__dirname, 'lib/ws-polyfill.js'),
