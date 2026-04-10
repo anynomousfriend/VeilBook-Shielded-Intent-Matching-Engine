@@ -29,9 +29,14 @@ export default function Hero() {
           <p className="text-lg md:text-xl text-white/60 max-w-xl mb-10 font-mono hero-subtitle opacity-0 translate-y-3">
             Zero-knowledge block trading on the Midnight Network. The network sees a hash, not a price.
           </p>
-          <Link href="/demo" className="px-8 py-4 bg-white text-black font-medium text-sm tracking-widest uppercase hover:bg-white/90 transition-colors hero-cta opacity-0 inline-block">
-            Launch Demo
-          </Link>
+          <div className="flex flex-col sm:flex-row items-start gap-4 hero-cta opacity-0">
+            <Link href="/dashboard" className="px-8 py-4 bg-white text-black font-medium text-sm tracking-widest uppercase hover:bg-white/90 transition-colors inline-block text-center">
+              Launch Dashboard
+            </Link>
+            <Link href="/demo" className="px-8 py-4 border border-white/20 text-white/70 font-medium text-sm tracking-widest uppercase hover:border-white/40 hover:text-white transition-all inline-block text-center">
+              View Architecture
+            </Link>
+          </div>
         </div>
 
         {/* Right: 3D Logo */}
