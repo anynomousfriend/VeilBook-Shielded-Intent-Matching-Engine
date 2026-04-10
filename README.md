@@ -1,4 +1,4 @@
-# 🕵️‍♂️ Veilbook — The Shielded Dark Pool
+# <img src="logo.svg" width="36" height="36" align="center" alt="Veilbook Logo"> Veilbook — The Shielded Dark Pool
 
 **[Live Demo](https://veilbook.vercel.app)**
 
