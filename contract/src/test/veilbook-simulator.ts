@@ -12,19 +12,6 @@ import {
 } from "../managed/veilbook/contract/index.js";
 import { type VeilbookPrivateState, witnesses } from "../witnesses.js";
 
-// Either<ContractAddress, UserAddress> helper — `right` wraps a UserAddress
-type EitherAddress = {
-  is_left: boolean;
-  left: { bytes: Uint8Array };
-  right: { bytes: Uint8Array };
-};
-
-const userAddress = (bytes: Uint8Array): EitherAddress => ({
-  is_left: false,
-  left: { bytes: new Uint8Array(32) },
-  right: { bytes }
-});
-
 export class VeilbookSimulator {
   readonly contract: Contract<VeilbookPrivateState>;
   circuitContext: CircuitContext<VeilbookPrivateState>;
@@ -83,9 +70,7 @@ export class VeilbookSimulator {
     commitA: Uint8Array,
     orderB: Order,
     bNonce: Uint8Array,
-    commitB: Uint8Array,
-    buyerAddr: Uint8Array,
-    sellerAddr: Uint8Array
+    commitB: Uint8Array
   ): Ledger {
     this.circuitContext.currentPrivateState.matchOrderA = {
       order: orderA,
@@ -95,10 +80,6 @@ export class VeilbookSimulator {
       order: orderB,
       nonce: bNonce
     };
-    this.circuitContext.currentPrivateState.matchBuyerAddress =
-      userAddress(buyerAddr);
-    this.circuitContext.currentPrivateState.matchSellerAddress =
-      userAddress(sellerAddr);
 
     this.circuitContext = this.contract.impureCircuits.match_orders(
       this.circuitContext,

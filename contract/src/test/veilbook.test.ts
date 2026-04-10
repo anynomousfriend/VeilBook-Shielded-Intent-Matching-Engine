@@ -8,7 +8,6 @@ setNetworkId("undeployed");
 describe("Veilbook smart contract", () => {
   const nonceA = new Uint8Array(32).fill(1);
   const nonceB = new Uint8Array(32).fill(2);
-  const userAddr = new Uint8Array(32).fill(3);
 
   it("generates initial ledger state deterministically", () => {
     const simulator0 = new VeilbookSimulator();
@@ -66,9 +65,7 @@ describe("Veilbook smart contract", () => {
       commitA,
       orderB,
       nonceB,
-      commitB,
-      userAddr,
-      userAddr
+      commitB
     );
 
     expect(finalLedger.match_count).toEqual(1n);
@@ -95,16 +92,7 @@ describe("Veilbook smart contract", () => {
     );
 
     expect(() => {
-      simulator.matchOrders(
-        orderA,
-        nonceA,
-        commitA,
-        orderB,
-        nonceB,
-        commitB,
-        userAddr,
-        userAddr
-      );
+      simulator.matchOrders(orderA, nonceA, commitA, orderB, nonceB, commitB);
     }).toThrow();
   });
 
