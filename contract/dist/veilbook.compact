@@ -1,0 +1,118 @@
+pragma language_version >= 0.20;
+
+import CompactStandardLibrary;
+
+export enum State { UNSET, OPEN, MATCHED, CANCELLED }
+
+export struct Order {
+  direction: Uint<8>,    // 0=BUY, 1=SELL
+  price: Uint<64>,
+  size: Uint<64>
+}
+
+export ledger match_count: Counter;
+export ledger orders_state: Map<Bytes<32>, State>;
+export ledger token_color: Bytes<32>;
+export ledger owner: UserAddress;
+
+// --- Order submission witnesses ---
+witness getOrderNonce(): Bytes<32>;
+witness getOrder(): Order;
+
+// --- Match witnesses ---
+witness getMatchOrderANonce(): Bytes<32>;
+witness getMatchOrderA(): Order;
+witness getMatchOrderBNonce(): Bytes<32>;
+witness getMatchOrderB(): Order;
+
+// --- Cancel witnesses ---
+witness getCancelOrderNonce(): Bytes<32>;
+witness getCancelOrder(): Order;
+
+constructor(initial_supply: Uint<64>, initial_owner: UserAddress) {
+  const domain = pad(32, "veilbook:token:v1");
+  const d_supply = disclose(initial_supply);
+
+  owner = disclose(initial_owner);
+  token_color = mintUnshieldedToken(domain, d_supply, left<ContractAddress, UserAddress>(kernel.self()));
+}
+
+// Submit a shielded order. The order details remain private; only the
+// commitment hash is recorded on-chain.
+export circuit submit_order(): Bytes<32> {
+  const nonce = getOrderNonce();
+  const order = getOrder();
+  const commitment = persistentCommit<Order>(order, nonce);
+
+  const d_commit = disclose(commitment);
+  assert(!orders_state.member(d_commit), "Order already exists");
+
+  orders_state.insert(d_commit, State.OPEN);
+  return d_commit;
+}
+
+// Match two open orders after verifying their ZK commitments and that
+// they are opposite sides with compatible price/size.
+export circuit match_orders(commit_a: Bytes<32>, commit_b: Bytes<32>): [] {
+  const d_commit_a = disclose(commit_a);
+  const d_commit_b = disclose(commit_b);
+
+  assert(orders_state.member(d_commit_a), "Order A not in state");
+  assert(orders_state.member(d_commit_b), "Order B not in state");
+
+  const status_a = orders_state.lookup(d_commit_a);
+  const status_b = orders_state.lookup(d_commit_b);
+  assert(status_a == State.OPEN, "Order A not open");
+  assert(status_b == State.OPEN, "Order B not open");
+
+  const a_nonce = getMatchOrderANonce();
+  const a_order = getMatchOrderA();
+  const b_nonce = getMatchOrderBNonce();
+  const b_order = getMatchOrderB();
+
+  assert(d_commit_a == persistentCommit<Order>(a_order, a_nonce), "Order A commitment mismatch");
+  assert(d_commit_b == persistentCommit<Order>(b_order, b_nonce), "Order B commitment mismatch");
+
+  // Matching logic: opposite directions, same size, crossing prices
+  assert(disclose(a_order.direction != b_order.direction), "Orders must be opposite directions");
+  assert(disclose(a_order.size == b_order.size), "Size mismatch (v1 requires exact size match)");
+
+  if (disclose(a_order.direction == 0)) { // A is BUY, B is SELL
+    assert(disclose(a_order.price >= b_order.price), "Price mismatch: BUY price < SELL price");
+  } else { // A is SELL, B is BUY
+    assert(disclose(b_order.price >= a_order.price), "Price mismatch: BUY price < SELL price");
+  }
+
+  orders_state.insert(d_commit_a, State.MATCHED);
+  orders_state.insert(d_commit_b, State.MATCHED);
+
+  match_count.increment(1);
+}
+
+// Cancel an open order. The caller proves ownership by supplying the
+// private order data that reconstructs the on-chain commitment.
+export circuit cancel_order(commitment: Bytes<32>): [] {
+  const d_commit = disclose(commitment);
+
+  assert(orders_state.member(d_commit), "Order not found");
+  assert(orders_state.lookup(d_commit) == State.OPEN, "Order not open");
+
+  const nonce = getCancelOrderNonce();
+  const order = getCancelOrder();
+  assert(d_commit == persistentCommit<Order>(order, nonce), "Commitment mismatch — not order owner");
+
+  orders_state.insert(d_commit, State.CANCELLED);
+}
+
+// Returns the contract's current unshielded token balance.
+export circuit get_balance(): Uint<128> {
+  return unshieldedBalance(token_color);
+}
+
+// Owner-only: distribute demo tokens to a recipient address.
+export circuit transfer_tokens(amount: Uint<64>, recipient: UserAddress): [] {
+  assert(ownPublicKey().bytes == owner.bytes, "Only the owner can transfer tokens");
+  const d_amount = disclose(amount);
+  const d_recipient = disclose(recipient);
+  sendUnshielded(token_color, d_amount as Uint<128>, right<ContractAddress, UserAddress>(d_recipient));
+}
