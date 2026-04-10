@@ -122,11 +122,7 @@ describe("Veilbook smart contract", () => {
       State.OPEN
     );
 
-    const finalLedger = simulator.cancelOrder(
-      order,
-      nonceA,
-      commitment
-    );
+    const finalLedger = simulator.cancelOrder(order, nonceA, commitment);
     expect(finalLedger.orders_state.lookup(commitment)).toEqual(
       State.CANCELLED
     );

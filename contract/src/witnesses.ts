@@ -68,5 +68,5 @@ export const witnesses: Witnesses<VeilbookPrivateState> = {
   }: WitnessContext<Ledger, VeilbookPrivateState>) => {
     if (!privateState.cancelOrder) throw new Error("cancelOrder not set");
     return [privateState, privateState.cancelOrder.order];
-  },
+  }
 };
