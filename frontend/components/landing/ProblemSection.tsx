@@ -84,26 +84,28 @@ const Visualizer = ({ displayTab, time, isExiting }: any) => {
         }
       }
       let wx = lerp(-7, 7, t);
-      // Increased z from 0.15 to 0.4 to make the whale block hover higher
-      newBlocks.push({ id: 'whale', x: wx, y: 0, z: 0.4, size: 0.8, height: 0.5, type: 'whale', glow: true });
+      // Increased z to 0.6 so the bottom of the block (0.6 - 0.5 height) is 0.1, strictly above the floor (0.0)
+      newBlocks.push({ id: 'whale', x: wx, y: 0, z: 0.6, size: 0.8, height: 0.5, type: 'whale', glow: true });
 
-      if (t > 0.1 && t < 0.9) {
-        let pt1 = (t - 0.1) / 0.7;
-        let px1 = lerp(-7, 7, pt1);
-        let py1 = 1;
-        if (px1 > -2 && px1 < 0) py1 = lerp(1, 0, easeInOutCubic((px1 + 2) / 2));
-        else if (px1 >= 0) py1 = 0;
-        // Increased z from 0.15 to 0.4
-        newBlocks.push({ id: 'p1', x: px1, y: py1, z: 0.4, size: 0.4, height: 0.3, type: 'predator', glow: true });
+      if (t > 0.05 && t < 0.9) {
+        let catchUpT = clamp((t - 0.05) / 0.4, 0, 1);
+        let relX = lerp(-4.0, 1.2, easeInOutCubic(catchUpT));
+        let px1 = wx + relX;
+        
+        let mergeT = clamp((catchUpT - 0.7) / 0.3, 0, 1);
+        let py1 = lerp(1, 0, easeInOutCubic(mergeT));
+        
+        newBlocks.push({ id: 'p1', x: px1, y: py1, z: 0.5, size: 0.4, height: 0.3, type: 'predator', glow: true });
       }
-      if (t > 0.2 && t < 0.95) {
-        let pt2 = (t - 0.2) / 0.7;
-        let px2 = lerp(-7, 7, pt2);
-        let py2 = -1;
-        if (px2 > 0 && px2 < 2) py2 = lerp(-1, 0, easeInOutCubic(px2 / 2));
-        else if (px2 >= 2) py2 = 0;
-        // Increased z from 0.15 to 0.4
-        newBlocks.push({ id: 'p2', x: px2, y: py2, z: 0.4, size: 0.4, height: 0.3, type: 'predator', glow: true });
+      if (t > 0.15 && t < 0.95) {
+        let catchUpT = clamp((t - 0.15) / 0.4, 0, 1);
+        let relX = lerp(-5.0, 2.2, easeInOutCubic(catchUpT));
+        let px2 = wx + relX;
+        
+        let mergeT = clamp((catchUpT - 0.7) / 0.3, 0, 1);
+        let py2 = lerp(-1, 0, easeInOutCubic(mergeT));
+        
+        newBlocks.push({ id: 'p2', x: px2, y: py2, z: 0.5, size: 0.4, height: 0.3, type: 'predator', glow: true });
       }
     } else if (displayTab === 1) {
       for (let i = -3; i <= 3; i++) {
@@ -165,7 +167,13 @@ const Visualizer = ({ displayTab, time, isExiting }: any) => {
       }
     }
 
-    return newBlocks.sort((a, b) => ((a.x + a.y) * 1000 + a.z * 10) - ((b.x + b.y) * 1000 + b.z * 10));
+    return newBlocks.sort((a, b) => {
+      // In isometric projection, elements that are strictly above others (higher Z)
+      // must be drawn AFTER the elements underneath them.
+      const depthA = a.x + a.y + (a.z * 2);
+      const depthB = b.x + b.y + (b.z * 2);
+      return depthA - depthB;
+    });
   }, [displayTab, time]);
 
   return (
