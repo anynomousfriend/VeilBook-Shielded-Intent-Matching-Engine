@@ -7,6 +7,7 @@ import SmartContractFactory from '@/components/smart-contract-factory';
 import PosConsensus from '@/components/pos-consensus';
 import { ChevronRight, ChevronLeft, Shield, Cpu, Network, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { Logo } from '@/components/ui/logo';
 
 import NetworkStatus from '@/components/network-status';
 
@@ -52,8 +53,8 @@ export default function DemoPage() {
     <div className="min-h-screen bg-[#050505] text-white font-sans flex flex-col">
       {/* Navigation Header */}
       <nav className="p-6 border-b border-white/10 flex justify-between items-center backdrop-blur-md bg-black/50 sticky top-0 z-50">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 bg-white text-black flex items-center justify-center font-bold rounded-lg group-hover:scale-110 transition-transform">V</div>
+        <Link href="/" className="flex items-center gap-3 group">
+          <Logo className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
           <span className="font-mono tracking-tighter text-xl font-medium">VEILBOOK <span className="text-white/40">{`// DEMO`}</span></span>
         </Link>
         

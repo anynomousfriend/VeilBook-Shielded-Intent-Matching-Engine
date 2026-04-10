@@ -4,6 +4,7 @@ import React, { Suspense, useReducer, useCallback, useRef, useEffect } from "rea
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Copy, Check, Wifi, WifiOff, Users } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 import TraderPanel from "@/components/dashboard/TraderPanel";
 import PublicFeed, { type FeedEvent } from "@/components/dashboard/PublicFeed";
 import MatchOverlay from "@/components/dashboard/MatchOverlay";
@@ -408,9 +409,7 @@ function DashboardContent() {
           className="flex items-center gap-3 group text-white/60 hover:text-white transition-colors"
         >
           <ArrowLeft size={16} />
-          <div className="w-7 h-7 bg-white text-black flex items-center justify-center font-bold rounded-md text-sm">
-            V
-          </div>
+          <Logo className="w-6 h-6 group-hover:scale-110 transition-transform text-white" />
           <span className="font-mono tracking-tight text-sm">
             VEILBOOK{" "}
             <span className="text-white/30">{`// DASHBOARD`}</span>
