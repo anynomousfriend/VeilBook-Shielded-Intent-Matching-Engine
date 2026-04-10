@@ -3,7 +3,6 @@ import { StandaloneConfig, currentDir } from './config.js';
 import * as api from './api.js';
 import { Veilbook } from '@midnight-ntwrk/veilbook-contract';
 import { generateRandomSeed } from '@midnight-ntwrk/wallet-sdk-hd';
-import { Buffer } from 'buffer';
 import { DockerComposeEnvironment, Wait } from 'testcontainers';
 import path from 'node:path';
 
@@ -24,7 +23,6 @@ async function runTest() {
   try {
     console.log('Building wallet...');
     const walletCtx = await api.buildWalletAndWaitForFunds(config, GENESIS_MINT_WALLET_SEED);
-
 
     console.log('Configuring providers...');
     const providers = await api.configureProviders(walletCtx, config);
@@ -49,16 +47,7 @@ async function runTest() {
     const resB = await api.submitOrder(providers, contract, orderB.direction, orderB.price, orderB.size, nonceB);
 
     console.log('Matching Orders...');
-    await api.matchOrders(
-      providers,
-      contract,
-      orderA,
-      nonceA,
-      orderB,
-      nonceB,
-      resA.commitment,
-      resB.commitment,
-    );
+    await api.matchOrders(providers, contract, orderA, nonceA, orderB, nonceB, resA.commitment, resB.commitment);
 
     console.log('Fetching status...');
     const status = await api.displayVeilbookStatus(providers, contract);
