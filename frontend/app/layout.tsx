@@ -16,6 +16,26 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'Veilbook built on Midnight',
   description: 'Zero-knowledge block trading on the Midnight Network.',
+  openGraph: {
+    title: 'Veilbook built on Midnight',
+    description: 'Zero-knowledge block trading on the Midnight Network.',
+    images: [
+      {
+        url: '/images/og-image.webp',
+        width: 1910,
+        height: 934,
+        alt: 'Veilbook Landing Page',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Veilbook built on Midnight',
+    description: 'Zero-knowledge block trading on the Midnight Network.',
+    images: ['/images/og-image.webp'],
+  },
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
