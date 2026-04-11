@@ -125,7 +125,7 @@ export const IsoBox: React.FC<IsoBoxProps> = ({ x, y, z, w, d, h, styleType, ren
   let topFill, sideLFill, sideRFill, stroke, sw, dash, filter;
   
   switch (styleType) {
-    case 'outer': // The transparent Dark Pool wrapper
+    case 'outer': // The transparent Intent Engine wrapper
       topFill = 'rgba(255,255,255,0.015)';
       sideLFill = 'rgba(255,255,255,0.03)';
       sideRFill = 'rgba(255,255,255,0.01)';

@@ -1,8 +1,8 @@
-# <img src="logo.svg" width="36" height="36" align="center" alt="Veilbook Logo"> Veilbook — The Shielded Dark Pool
+# <img src="logo.svg" width="36" height="36" align="center" alt="Veilbook Logo"> Veilbook — Shielded Intent Matching Engine
 
 **[Live Demo](https://veilbook.vercel.app)**
 
-Veilbook is a privacy-preserving intent-matching engine — a fully decentralised dark pool built on the Midnight blockchain. It allows traders to submit shielded order commitments and match them cryptographically. 
+Veilbook is a privacy-preserving intent-matching engine built on the Midnight blockchain. While currently focused on shielded order matching, it is designed to evolve into a fully decentralized dark pool. It allows traders to submit shielded order commitments and match them cryptographically. 
 
 **For whom is it?** Institutional traders, crypto whales, and privacy-conscious retail users who need to move significant volume without moving the market.
 **Why does it exist?** To solve the trillion-dollar problem of Maximal Extractable Value (MEV). On public ledgers, bots front-run your trades and exploit your transparent order flow. Veilbook ensures that prices, sizes, and trader identities remain strictly confidential until a match is confirmed on-chain. No front-running. No information leakage. No trusted intermediary.
@@ -120,7 +120,7 @@ NEXT_PUBLIC_RELAY_URL=ws://localhost:4400
 veilbook/
 ├── contract/                    # Compact smart contract
 │   ├── src/
-│   │   ├── veilbook.compact     # Core dark pool ZK logic
+│   │   ├── veilbook.compact     # Core ZK intent matching logic
 │   │   ├── witnesses.ts         # TypeScript private state fetchers
 │   │   └── test/                # Contract tests & simulator
 │   └── src/managed/             # Compiled output (keys, ZKIR, TS bindings)
@@ -146,7 +146,7 @@ When a trader submits an order, the browser sends the *on-chain hash* (not the p
 
 ---
 
-## The Rationale of the Veilbook Shielded Dark Pool
+## The Rationale of the Veilbook Shielded Intent Matching Engine
 
 Veilbook is a decentralized application (DApp) designed to showcase the powerful privacy-preserving capabilities of the Midnight stack. It demonstrates how rational privacy solves one of the most toxic problems in modern decentralized finance.
 
@@ -178,7 +178,7 @@ You can interact with Veilbook live on the Midnight Preprod network today.
 
 ## 🛣️ Roadmap & Future Phases
 
-Due to current time constraints and Midnight Preprod limitations, Veilbook is currently in **Phase 1: The Core Matching Engine**. To evolve into a fully-fledged institutional dark pool, the following phases are planned:
+Due to current time constraints and Midnight Preprod limitations, Veilbook is currently in **Phase 1: Shielded Intent Matching**. To evolve into a fully-fledged institutional dark pool, the following phases are planned:
 
 ### Phase 2: Trustless Atomic Settlement
 Currently, Veilbook handles the intent and cryptographic matching of orders. The next immediate step is integrating Midnight's native token shielding (`receiveUnshielded` / `sendUnshielded`) directly into the ZK circuits. Upon a successful match, the smart contract will atomically swap the underlying shielded tokens between the buyer and seller, eliminating counterparty risk entirely.

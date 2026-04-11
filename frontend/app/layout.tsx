@@ -14,7 +14,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Midnight Network | ZK Dark Pool',
+  title: 'Veilbook built on Midnight',
   description: 'Zero-knowledge block trading on the Midnight Network.',
 };
 

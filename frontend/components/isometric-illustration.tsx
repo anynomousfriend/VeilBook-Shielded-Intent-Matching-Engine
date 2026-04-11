@@ -4,8 +4,9 @@ import React from 'react';
 import { motion } from 'motion/react';
 
 /**
- * ZK Dark Pool on Midnight Network - Isometric Illustration
- * * This component renders a pure, raw SVG using mathematical isometric projection.
+ * Shielded Intent Matching Engine on Midnight Network - Isometric Illustration
+ * 
+ * This component renders a pure, raw SVG using mathematical isometric projection.
  * It strictly adheres to a minimalist, dark mode, high-tech wireframe aesthetic.
  * * DOM Structure is logically grouped for easy GSAP / CSS animation targeting.
  * No external libraries are used. All rendering is derived from the custom `iso()` math helper.
@@ -336,7 +337,7 @@ export default function IsometricIllustration({ className = "w-full h-full" }: {
           <IsoBox x={-166} y={-126} z={165} w={12} d={12} h={15} styleType="core" />
         </g>
 
-        {/* 4. THE DARK POOL (OUTER SHELL - BACK EDGES) */}
+        {/* 4. THE INTENT ENGINE (OUTER SHELL - BACK EDGES) */}
         <g id="layer-pool-outer-back">
           <IsoBox x={-80} y={-80} z={0} w={160} d={160} h={100} styleType="outer" renderParts="back" />
         </g>
@@ -387,9 +388,9 @@ export default function IsometricIllustration({ className = "w-full h-full" }: {
           <IsoPath points={[[40, 0, 90], [15, 0, 90]]} stroke="#ffffff" strokeWidth={2} dash="1 4" filter="url(#neon-glow-intense)" />
         </g>
 
-        {/* 9. THE DARK POOL (OUTER SHELL - FRONT FACES) */}
+        {/* 9. THE INTENT ENGINE (OUTER SHELL - FRONT FACES) */}
         <g id="layer-pool-outer-front">
-          {/* This renders over the internal pipelines to submerge them in the pool */}
+          {/* This renders over the internal pipelines to submerge them in the engine */}
           <IsoBox x={-80} y={-80} z={0} w={160} d={160} h={100} styleType="outer" renderParts="front" />
         </g>
 

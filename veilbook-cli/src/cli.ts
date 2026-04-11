@@ -39,8 +39,8 @@ const GENESIS_MINT_WALLET_SEED = '0000000000000000000000000000000000000000000000
 const BANNER = `
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
-║              Veilbook Shielded Dark Pool                     ║
-║              ──────────────────────────                      ║
+║          Veilbook Shielded Intent Matching Engine            ║
+║          ────────────────────────────────────────            ║
 ║              A privacy-preserving order book demo            ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
