@@ -1,6 +1,6 @@
 # <img src="logo.svg" width="36" height="36" align="center" alt="Veilbook Logo"> Veilbook — Shielded Intent Matching Engine
 
-**[Live Demo](https://veilbook.vercel.app)**
+**[Live Demo](https://veilbook.vercel.app) | [Video Demo](https://youtu.be/-5rXtHzo1Jk?si=Hr6rYfRU8DpAsXTd)**
 
 Veilbook is a privacy-preserving intent-matching engine built on the Midnight blockchain. While currently focused on shielded order matching, it is designed to evolve into a fully decentralized dark pool. It allows traders to submit shielded order commitments and match them cryptographically. 
 
