@@ -169,8 +169,10 @@ The bridge between these two worlds is the **Zero-Knowledge Proof**. The local p
 ### Live Deployment Info
 You can interact with Veilbook live on the Midnight Preprod network today. 
 - **Network:** Midnight Preprod
-- **Deployed Veilbook Contract:** `5ccd077b2708ec890a83ffa6e4c4c0c50d9363bb0af07384d13af1fc9c078432`
-- **View on Explorer:** [Midnight Preprod Explorer](https://explorer.preprod.midnight.network/contracts/stream/5ccd077b2708ec890a83ffa6e4c4c0c50d9363bb0af07384d13af1fc9c078432)
+- **Deployed Veilbook Contract:** `c9cdf52982b1b8d41b411c10f84b8760840422907e11eeda79910b36291cbd6f`
+- **View on Explorer:** [Midnight Preprod Explorer](https://explorer.preprod.midnight.network/contracts/stream/c9cdf52982b1b8d41b411c10f84b8760840422907e11eeda79910b36291cbd6f)
+
+![Veilbook Block Explorer](block-explorer.gif)
 
 *(Note: Ensure your Lace wallet network is set to Preprod before connecting).*
 
