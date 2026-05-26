@@ -27,6 +27,11 @@ const nextConfig: NextConfig = {
   },
   output: 'standalone',
   transpilePackages: ['motion', '@midnight-ntwrk/midnight-js-indexer-public-data-provider'],
+  modularizeImports: {
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+    },
+  },
   webpack: (config, {dev, isServer}) => {
     // Specify that the target environment supports async functions
     // This solves the root cause of the asyncWebAssembly 'async/await' warning

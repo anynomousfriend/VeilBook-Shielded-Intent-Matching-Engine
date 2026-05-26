@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 export default function ThreeLogo() {
   const mountRef = useRef<HTMLDivElement>(null);
+  const isVisibleRef = useRef(true);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -68,7 +69,7 @@ export default function ThreeLogo() {
     envScene.add(panel3);
 
     // Setup CubeCamera to capture the environment
-    const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(512, {
+    const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(256, {
         format: THREE.RGBAFormat,
         generateMipmaps: true,
         minFilter: THREE.LinearMipmapLinearFilter
@@ -137,7 +138,7 @@ export default function ThreeLogo() {
     }
     points.push(points[0].clone());
 
-    const ringGeometry = new THREE.LatheGeometry(points, 200);
+    const ringGeometry = new THREE.LatheGeometry(points, 128);
     ringGeometry.rotateX(Math.PI / 2); 
     
     const ring = new THREE.Mesh(ringGeometry, currentMaterial);
@@ -185,8 +186,8 @@ export default function ThreeLogo() {
     const dirLight = new THREE.DirectionalLight(0xfff5ea, 2.0); 
     dirLight.position.set(-15, 25, 20);
     dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
     dirLight.shadow.camera.near = 0.5;
     dirLight.shadow.camera.far = 100;
     const d = 20;
@@ -221,6 +222,7 @@ export default function ThreeLogo() {
 
     function animate() {
         animationFrameId = requestAnimationFrame(animate);
+        if (!isVisibleRef.current) return;  // Skip rendering when off-screen
         const delta = clock.getDelta();
         mainGroup.rotation.y += 0.5 * delta;
         controls.update();
@@ -237,7 +239,14 @@ export default function ThreeLogo() {
     };
     window.addEventListener('resize', handleResize);
 
+    const observer = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+      { rootMargin: '200px' }
+    );
+    observer.observe(container);
+
     return () => {
+        observer.disconnect();
         window.removeEventListener('resize', handleResize);
         cancelAnimationFrame(animationFrameId);
         controls.dispose();

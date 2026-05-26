@@ -151,6 +151,21 @@ export default function SolutionSection() {
   const [time, setTime] = useState(0);
   const timeRef = useRef(0);
 
+  // Visibility-based animation loop optimization
+  const sectionRef = useRef<HTMLElement>(null);
+  const isVisibleRef = useRef(true);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     let lastTime = performance.now();
     let animId: number;
@@ -159,7 +174,9 @@ export default function SolutionSection() {
       const dt = now - lastTime;
       lastTime = now;
       timeRef.current += dt;
-      setTime(timeRef.current);
+      if (isVisibleRef.current) {
+        setTime(timeRef.current);
+      }
       animId = requestAnimationFrame(loop);
     };
 
@@ -176,7 +193,7 @@ export default function SolutionSection() {
   };
 
   return (
-    <section className="relative w-full min-h-screen bg-[#050505] flex flex-col items-center justify-center py-20 px-4 overflow-hidden border-t border-white/5 z-30 solution-section">
+    <section ref={sectionRef} className="relative w-full min-h-screen bg-[#050505] flex flex-col items-center justify-center py-20 px-4 overflow-hidden border-t border-white/5 z-30 solution-section">
       
       {/* Subtle radial background for the section */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/[0.02] via-[#050505] to-black pointer-events-none" />

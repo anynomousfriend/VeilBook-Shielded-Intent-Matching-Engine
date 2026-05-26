@@ -25,10 +25,10 @@ export default function FinalCTA() {
           Execute with Certainty.
         </h2>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/dashboard" className="px-10 py-5 bg-white text-black font-medium text-sm tracking-widest uppercase hover:bg-white/90 transition-colors">
+          <Link href="/dashboard" prefetch={false} className="px-10 py-5 bg-white text-black font-medium text-sm tracking-widest uppercase hover:bg-white/90 transition-colors">
             Launch Dashboard
           </Link>
-          <Link href="/demo" className="px-10 py-5 border border-white/20 text-white/70 font-medium text-sm tracking-widest uppercase hover:border-white/40 hover:text-white transition-all">
+          <Link href="/demo" prefetch={false} className="px-10 py-5 border border-white/20 text-white/70 font-medium text-sm tracking-widest uppercase hover:border-white/40 hover:text-white transition-all">
             View Architecture
           </Link>
         </div>

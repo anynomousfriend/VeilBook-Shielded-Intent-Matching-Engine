@@ -134,13 +134,13 @@ export default function TechSection() {
                   className={`absolute left-[-2px] top-0 bottom-0 w-[2px] bg-white transition-transform duration-700 origin-top ${activeIndex === i ? 'scale-y-100' : 'scale-y-0'}`} 
                 />
                 
-                <span className="font-mono text-white/40 text-sm tracking-widest uppercase mb-6 block">
+                <span className="font-mono text-white/70 text-sm tracking-widest uppercase mb-6 block">
                   0{i + 1} {`// Phase`}
                 </span>
                 <h3 className="text-3xl md:text-5xl font-medium text-white mb-6 tracking-tight">
                   {card.title}
                 </h3>
-                <p className="text-lg md:text-xl text-white/50 leading-relaxed font-mono max-w-md">
+                <p className="text-lg md:text-xl text-white/70 leading-relaxed font-mono max-w-md">
                   {card.desc}
                 </p>
               </div>

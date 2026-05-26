@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import DidVerification from '@/components/did-verification';
-import SmartContractFactory from '@/components/smart-contract-factory';
-import PosConsensus from '@/components/pos-consensus';
+import dynamic from 'next/dynamic';
 import { ChevronRight, ChevronLeft, Shield, Cpu, Network, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/ui/logo';
+
+const DidVerification = dynamic(() => import('@/components/did-verification'), { ssr: false });
+const SmartContractFactory = dynamic(() => import('@/components/smart-contract-factory'), { ssr: false });
+const PosConsensus = dynamic(() => import('@/components/pos-consensus'), { ssr: false });
 
 import NetworkStatus from '@/components/network-status';
 
@@ -72,7 +74,7 @@ export default function DemoPage() {
           ))}
         </div>
 
-        <Link href="/" className="text-sm font-mono text-white/60 hover:text-white transition-colors flex items-center gap-2">
+        <Link href="/" prefetch={false} className="text-sm font-mono text-white/60 hover:text-white transition-colors flex items-center gap-2">
           EXIT TO SITE <ArrowRight size={14} />
         </Link>
       </nav>
@@ -169,6 +171,7 @@ export default function DemoPage() {
             {currentStep === DEMO_STEPS.length - 1 ? (
               <Link 
                 href="/dashboard"
+                prefetch={false}
                 className="px-8 py-4 bg-white text-black font-medium text-sm tracking-widest uppercase hover:invert transition-all inline-block"
               >
                 ENTER DASHBOARD

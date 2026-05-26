@@ -277,6 +277,21 @@ export default function ProblemSection() {
     }
   }, [activeTab, displayTab]);
 
+  // Visibility-based animation loop optimization
+  const sectionRef = useRef<HTMLElement>(null);
+  const isVisibleRef = useRef(true);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // Global Engine Loop
   useEffect(() => {
     let lastTime = performance.now();
@@ -288,7 +303,9 @@ export default function ProblemSection() {
       
       // Time flows continuously forward
       stateRef.current.sceneTime += dt;
-      setTime(stateRef.current.sceneTime);
+      if (isVisibleRef.current) {
+        setTime(stateRef.current.sceneTime);
+      }
 
       animId = requestAnimationFrame(loop);
     };
@@ -304,7 +321,7 @@ export default function ProblemSection() {
   ];
 
   return (
-    <section className="relative w-full bg-[#050505] text-zinc-200 font-sans problem-section">
+    <section ref={sectionRef} className="relative w-full bg-[#050505] text-zinc-200 font-sans problem-section">
       
       {/* Full-width Centered Header Section */}
       <header 
@@ -353,19 +370,19 @@ export default function ProblemSection() {
                 <div className={`absolute left-0 top-1/4 bottom-1/4 w-1 rounded-r-xl transition-all duration-500 ${activeTab === idx ? 'bg-white opacity-100' : 'opacity-0'}`} />
                 
                 <div className="flex flex-col mb-6">
-                  <span className={`font-mono text-5xl md:text-6xl font-light tracking-tighter mb-4 transition-colors ${activeTab === idx ? 'text-white' : 'text-white/40'}`}>
+                  <span className={`font-mono text-5xl md:text-6xl font-light tracking-tighter mb-4 transition-colors ${activeTab === idx ? 'text-white' : 'text-white/70'}`}>
                     0{idx + 1}
                   </span>
-                  <h3 className={`font-medium text-3xl md:text-4xl tracking-tight transition-colors ${activeTab === idx ? 'text-white' : 'text-white/60'}`}>
+                  <h3 className={`font-medium text-3xl md:text-4xl tracking-tight transition-colors ${activeTab === idx ? 'text-white' : 'text-white/80'}`}>
                     {tab.title}
                   </h3>
                 </div>
                 
-                <h4 className={`text-lg md:text-xl font-mono mb-4 transition-colors ${activeTab === idx ? 'text-white/80' : 'text-white/40'}`}>
+                <h4 className={`text-lg md:text-xl font-mono mb-4 transition-colors ${activeTab === idx ? 'text-white/90' : 'text-white/70'}`}>
                   {tab.subtitle}
                 </h4>
                 
-                <p className={`text-base md:text-lg leading-relaxed transition-colors ${activeTab === idx ? 'text-white/60' : 'text-white/30'}`}>
+                <p className={`text-base md:text-lg leading-relaxed transition-colors ${activeTab === idx ? 'text-white/80' : 'text-white/70'}`}>
                   {tab.desc}
                 </p>
               </div>

@@ -4,10 +4,12 @@ import React, { useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
+import dynamic from 'next/dynamic';
 
 import Hero from '@/components/landing/Hero';
 import ProblemSection from '@/components/landing/ProblemSection';
 import SolutionSection from '@/components/landing/SolutionSection';
+
 import ThreeViewers from '@/components/landing/ThreeViewers';
 import TechSection from '@/components/landing/TechSection';
 import FinalCTA from '@/components/landing/FinalCTA';

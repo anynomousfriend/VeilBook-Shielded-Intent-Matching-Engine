@@ -1,6 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
-import ThreeLogo from './ThreeLogo';
+import dynamic from 'next/dynamic';
+
+const ThreeLogo = dynamic(() => import('./ThreeLogo'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full" />,
+});
 
 export default function Hero() {
   return (
@@ -30,10 +35,10 @@ export default function Hero() {
             Zero-knowledge block trading on the Midnight Network. The network sees a hash, not a price.
           </p>
           <div className="flex flex-col sm:flex-row items-start gap-4 hero-cta opacity-0">
-            <Link href="/dashboard" className="px-8 py-4 bg-white text-black font-medium text-sm tracking-widest uppercase hover:bg-white/90 transition-colors inline-block text-center">
+            <Link href="/dashboard" prefetch={false} className="px-8 py-4 bg-white text-black font-medium text-sm tracking-widest uppercase hover:bg-white/90 transition-colors inline-block text-center">
               Launch Dashboard
             </Link>
-            <Link href="/demo" className="px-8 py-4 border border-white/20 text-white/70 font-medium text-sm tracking-widest uppercase hover:border-white/40 hover:text-white transition-all inline-block text-center">
+            <Link href="/demo" prefetch={false} className="px-8 py-4 border border-white/20 text-white/70 font-medium text-sm tracking-widest uppercase hover:border-white/40 hover:text-white transition-all inline-block text-center">
               View Architecture
             </Link>
           </div>

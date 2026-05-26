@@ -114,10 +114,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    tryDetect();
-    detectionIntervalRef.current = setInterval(tryDetect, 500);
+    // Defer wallet detection to avoid blocking initial paint
+    const scheduleDetection = () => {
+      tryDetect();
+      detectionIntervalRef.current = setInterval(tryDetect, 500);
+    };
+
+    const idleCallback = typeof window.requestIdleCallback === 'function'
+      ? window.requestIdleCallback(scheduleDetection)
+      : setTimeout(scheduleDetection, 1000);
 
     return () => {
+      if (typeof window.cancelIdleCallback === 'function' && typeof idleCallback === 'number') {
+        window.cancelIdleCallback(idleCallback);
+      }
       if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current);
     };
   }, []);

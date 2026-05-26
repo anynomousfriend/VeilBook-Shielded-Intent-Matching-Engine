@@ -99,7 +99,7 @@ export default function ThreeViewers() {
                Public Network View
              </div>
              <div className="font-mono text-white/10 text-sm md:text-base leading-loose break-all opacity-60 select-none mt-12">
-               {Array(15).fill(STATIC_HASHES.join(" ")).map((line, i) => (
+               {Array(8).fill(STATIC_HASHES.join(" ")).map((line, i) => (
                  <div key={i} className="whitespace-nowrap overflow-hidden">{line}</div>
                ))}
              </div>
