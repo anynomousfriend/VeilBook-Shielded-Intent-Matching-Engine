@@ -26,7 +26,7 @@ export default function NetworkStatus() {
 
   const handleCopy = () => {
     if (proofServerStatus === 'down') {
-      navigator.clipboard.writeText('cd veilbook/veilbook-cli && npm run preview-ps');
+      navigator.clipboard.writeText('cd veilbook/veilbook-cli && npm run preprod-ps');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -73,7 +73,7 @@ export default function NetworkStatus() {
             </div>
           </div>
           <div className="text-xs font-mono text-emerald-400 bg-black/50 p-2 rounded text-left">
-            cd veilbook/veilbook-cli && <br/>npm run preview-ps
+            cd veilbook/veilbook-cli && <br/>npm run preprod-ps
           </div>
         </div>
       )}

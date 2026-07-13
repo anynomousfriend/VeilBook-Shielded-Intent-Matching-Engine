@@ -62,7 +62,7 @@ export const createBrowserProviders = (
   injectedWallet: any, // The connected DApp wallet API
   coinPublicKey: string,
   encryptionPublicKey: string,
-  network: 'preview' | 'preprod' = 'preview'
+  network: 'preview' | 'preprod' = 'preprod'
 ): VeilbookProviders => {
   setNetworkId(network);
   const config = network === 'preview' ? NETWORK_CONFIGS.preview : NETWORK_CONFIGS.preprod;
