@@ -411,8 +411,7 @@ function DashboardContent() {
           <ArrowLeft size={16} />
           <Logo className="w-6 h-6 group-hover:scale-110 transition-transform text-white" />
           <span className="font-mono tracking-tight text-sm">
-            VEILBOOK{" "}
-            <span className="text-white/30">{`// DASHBOARD`}</span>
+            VEILBOOK
           </span>
         </Link>
 
