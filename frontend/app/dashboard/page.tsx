@@ -198,7 +198,7 @@ function DashboardContent() {
   const router = useRouter();
   const [state, dispatch] = useReducer(reducer, {
     ...initialState,
-    contractAddress: searchParams.get('contract') || process.env.NEXT_PUBLIC_VEILBOOK_ADDRESS || null,
+    contractAddress: searchParams.get('contract') || process.env.NEXT_PUBLIC_VEILBOOK_ADDRESS || "5ccd077b2708ec890a83ffa6e4c4c0c50d9363bb0af07384d13af1fc9c078432",
   });
 
   const { isConnected: walletConnected, wallet, address, connect, coinPublicKey, encryptionPublicKey } = useWallet();
