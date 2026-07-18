@@ -106,11 +106,13 @@ npm run dev
 The UI will be available at `http://localhost:3000/dashboard`.
 
 ### Environment Configuration
-The UI connects automatically to the contract address specified in your `.env`:
+The frontend ships with a default preprod contract address baked in, so the live demo works out of the box.
+To override, set the following in your `.env.local`:
 ```env
 NEXT_PUBLIC_VEILBOOK_ADDRESS=5ccd077b2708ec890a83ffa6e4c4c0c50d9363bb0af07384d13af1fc9c078432
 NEXT_PUBLIC_RELAY_URL=ws://localhost:4400
 ```
+You can also pass a one-off contract address via the URL: `/dashboard?contract=<address>`.
 
 ---
 

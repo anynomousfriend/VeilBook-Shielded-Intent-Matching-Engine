@@ -17,7 +17,12 @@ import { createBrowserProviders } from "@/lib/providers";
 import { joinVeilbook, submitOrder, matchOrders, type SubmitOrderResult } from "@/lib/veilbook-api";
 import type { Veilbook } from "@midnight-ntwrk/veilbook-contract";
 
-// Per-trader ZK data (stored in refs — Uint8Arrays aren't serializable in React state)
+// Default contract address deployed on Midnight preprod.
+// Used as the last-resort fallback when neither the ?contract= query param nor
+// the NEXT_PUBLIC_VEILBOOK_ADDRESS env var is set (e.g. first-time live demo visitors).
+const DEFAULT_CONTRACT_ADDRESS = "5ccd077b2708ec890a83ffa6e4c4c0c50d9363bb0af07384d13af1fc9c078432";
+
+// Per-trader ZK data (stored in refs - Uint8Arrays aren't serializable in React state)
 interface TraderZkData {
   order: Veilbook.Order;
   nonce: Uint8Array;
@@ -198,7 +203,7 @@ function DashboardContent() {
   const router = useRouter();
   const [state, dispatch] = useReducer(reducer, {
     ...initialState,
-    contractAddress: searchParams.get('contract') || process.env.NEXT_PUBLIC_VEILBOOK_ADDRESS || "5ccd077b2708ec890a83ffa6e4c4c0c50d9363bb0af07384d13af1fc9c078432",
+    contractAddress: searchParams.get('contract') || process.env.NEXT_PUBLIC_VEILBOOK_ADDRESS || DEFAULT_CONTRACT_ADDRESS,
   });
 
   const { isConnected: walletConnected, wallet, address, connect, coinPublicKey, encryptionPublicKey } = useWallet();
@@ -262,13 +267,25 @@ function DashboardContent() {
         }
         const providers = providersRef.current;
 
-        // Always join the pre-deployed contract — any wallet can submit orders regardless of ownership
+        // Always join the pre-deployed contract - any wallet can submit orders regardless of ownership
         if (!activeContractRef.current) {
           const addr = state.contractAddress;
           if (!addr) {
-            throw new Error("No contract address set. Deploy a contract via the CLI and set NEXT_PUBLIC_VEILBOOK_ADDRESS.");
+            throw new Error(
+              "No contract address configured. " +
+              "Please set the NEXT_PUBLIC_VEILBOOK_ADDRESS environment variable or append ?contract=<address> to the URL."
+            );
           }
-          activeContractRef.current = await joinVeilbook(providers, addr);
+          try {
+            activeContractRef.current = await joinVeilbook(providers, addr);
+          } catch (joinErr: any) {
+            console.error("Failed to join contract:", joinErr);
+            throw new Error(
+              `Could not connect to contract ${addr.slice(0, 8)}...${addr.slice(-4)}. ` +
+              "The contract may not exist on the current network or the indexer may be unavailable. " +
+              "Please check your network connection and try again."
+            );
+          }
         }
 
         const contract = activeContractRef.current!;
