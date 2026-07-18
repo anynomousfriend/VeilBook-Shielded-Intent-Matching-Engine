@@ -640,18 +640,19 @@ export const monitorDustBalance = async (wallet: WalletFacade, stopSignal: Promi
       ).length;
       const totalNight = state.unshielded.availableCoins.length;
 
-      let status = '';
-      if (pendingCoins > 0 && availableCoins === 0) {
-        status = '⚠ locked by pending tx';
-      } else if (available > 0n) {
-        status = '✓ ready to deploy';
-      } else if (availableCoins > 0) {
-        status = 'accruing...';
-      } else if (registeredNight > 0) {
-        status = 'waiting for generation...';
-      } else {
-        status = 'no NIGHT registered';
-      }
+      const status = (() => {
+        if (pendingCoins > 0 && availableCoins === 0) {
+          return '⚠ locked by pending tx';
+        } else if (available > 0n) {
+          return '✓ ready to deploy';
+        } else if (availableCoins > 0) {
+          return 'accruing...';
+        } else if (registeredNight > 0) {
+          return 'waiting for generation...';
+        } else {
+          return 'no NIGHT registered';
+        }
+      })();
 
       const time = now.toLocaleTimeString();
       console.log(
