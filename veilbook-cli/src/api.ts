@@ -30,7 +30,7 @@ import { HDWallet, Roles, generateRandomSeed } from '@midnight-ntwrk/wallet-sdk-
 import { ShieldedWallet } from '@midnight-ntwrk/wallet-sdk-shielded';
 import {
   createKeystore,
-  InMemoryTransactionHistoryStorage,
+  NoOpTransactionHistoryStorage,
   PublicKey,
   UnshieldedWallet,
   type UnshieldedKeystore,
@@ -391,7 +391,7 @@ const buildUnshieldedConfig = ({ indexer, indexerWS }: Config) => ({
     indexerHttpUrl: indexer,
     indexerWsUrl: indexerWS,
   },
-  txHistoryStorage: new InMemoryTransactionHistoryStorage(),
+  txHistoryStorage: new NoOpTransactionHistoryStorage(),
 });
 
 const buildDustConfig = ({ indexer, indexerWS, node, proofServer }: Config) => ({
