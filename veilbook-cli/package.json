@@ -13,9 +13,13 @@
     "preview-ps": "docker compose -f proof-server.yml pull && node --experimental-specifier-resolution=node --loader ts-node/esm src/preview-start-proof-server.ts",
     "preprod": "node --experimental-specifier-resolution=node --loader ts-node/esm src/preprod.ts",
     "preprod-ps": "docker compose -f proof-server.yml pull && node --experimental-specifier-resolution=node --loader ts-node/esm src/preprod-start-proof-server.ts",
-    "deploy": "node --experimental-specifier-resolution=node --loader ts-node/esm src/deploy-preprod.ts"
+    "deploy": "node --experimental-specifier-resolution=node --loader ts-node/esm src/deploy-preprod.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@midnight-ntwrk/veilbook-contract": "*"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
   }
 }
