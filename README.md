@@ -85,10 +85,9 @@ Once running, the CLI presents an interactive menu:
 6. `Submit Order / Match Orders / Cancel Order`
 
 ### 6. Start the Relay Server
-Veilbook uses a lightweight WebSocket relay to broadcast commitment hashes between peers.
+Veilbook uses a lightweight WebSocket relay to broadcast commitment hashes between peers. Dependencies should be installed at the repository root before running this.
 ```bash
 cd relay
-npm install
 npx tsx server.ts
 ```
 

@@ -98,3 +98,34 @@ Confirmed two copies:
 - **Duplicate WASM modules:** Any `file:`-linked package that imports `@midnight-ntwrk/*` WASM packages will resolve to root `node_modules` instead of `frontend/node_modules`. Always keep `config.resolve.modules = [path.resolve(__dirname, 'node_modules'), 'node_modules']` in `next.config.ts`.
 
 - **Network ID:** Must call `setNetworkId(networkId)` once before any Midnight SDK operation. In the browser this is done inside `createBrowserProviders`. In the CLI it is done in each config class constructor via `setAllNetworkIds`.
+
+---
+
+## 2026-07-18 - CLI heap OOM during preprod wallet sync
+
+**Error:** `npm run preprod` crashes during "Syncing with network" with V8 heap OOM (Ineffective mark-compacts near heap limit, ~4 GB).
+
+**Root cause:** `buildUnshieldedConfig` in `veilbook-cli/src/api.ts` used `InMemoryTransactionHistoryStorage`, which buffers the full transaction history in memory during wallet sync. On preprod the chain history is large enough to exhaust the default V8 heap.
+
+**Fix:** `veilbook-cli/src/api.ts`
+- Replaced `InMemoryTransactionHistoryStorage` with `NoOpTransactionHistoryStorage` (both from `@midnight-ntwrk/wallet-sdk-unshielded-wallet`)
+- The CLI only deploys/calls contracts - it never reads transaction history, so discarding it is safe
+- Added 40 unit tests in `veilbook-cli/src/test/transaction-history-storage.test.ts` covering:
+  - Source-level regression (api.ts imports NoOp, not InMemory)
+  - NoOp behavioral contract (create discards, get/delete return undefined)
+  - InMemory contrast (confirms it retains - the OOM cause)
+  - Memory growth comparison (NoOp flat, InMemory linear)
+  - Interface compatibility (both satisfy TransactionHistoryStorage)
+  - Edge cases (concurrency, null fees, all status types, large UTXOs)
+
+---
+
+## 2026-07-18 - Remove stale codemod scripts and dev scratch files
+
+**Issue:** One-time codemod `.cjs` scripts in `contract/` and dev scratch files in `veilbook-cli/` cluttered the repo.
+
+**Files removed:**
+- `contract/*.cjs` (9 files): `fix_all.cjs`, `fix_cli.cjs`, `remove_workaround.cjs`, `script.cjs`, `update_api.cjs`, `update_cli.cjs`, `update_cli2.cjs`, `update_cli3.cjs`, `update_readme.cjs`
+- `veilbook-cli/test-decode.js`, `veilbook-cli/test-decode.ts`, `veilbook-cli/test-native.ts`, `veilbook-cli/src/test-native.ts` (untracked dev scratch)
+
+**Why safe to remove:** No file in the repo references any of these scripts (verified via grep). They performed one-shot exact-string replacements that have already been applied. Some contradict each other.
