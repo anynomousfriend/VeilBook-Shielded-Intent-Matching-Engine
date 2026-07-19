@@ -24,7 +24,7 @@ The veilbook app has been successfully migrated to the Preprod network. Contract
 
 ### Network Config
 - PreprodConfig class targeting remote Preprod indexer and RPC node
-- Local proof server via `proof-server-preprod.yml`
+- Local proof server via `proof-server.yml`
 - GraphQL v3 API paths
 
 ### Bug Workaround: wallet-sdk-unshielded-wallet signRecipe
@@ -43,8 +43,8 @@ The veilbook app has been successfully migrated to the Preprod network. Contract
 | `veilbook-cli/src/cli.ts` | Interactive CLI menus, deploy/join/increment flow, error logging |
 | `veilbook-cli/src/config.ts` | PreprodConfig with endpoints |
 | `veilbook-cli/src/common-types.ts` | Updated type definitions for midnight-js 3.0.0 |
-| `veilbook-cli/src/preprod-local.ts` | Preprod entry point |
-| `veilbook-cli/proof-server-preprod.yml` | Docker compose for local proof server |
+| `veilbook-cli/src/preprod.ts` | Preprod entry point |
+| `veilbook-cli/proof-server.yml` | Docker compose for local proof server |
 
 ## Reference Materials
 

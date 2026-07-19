@@ -21,11 +21,11 @@ This document outlines the steps to verify that updated package versions do not 
 - [ ] Build the project using the documented steps
 - [ ] Verify the build completes without errors
 
-## 4. Start the Remote Testnet
+## 4. Start the Preprod CLI
 
 - [ ] Run the following command in the `veilbook-cli` directory:
   ```sh
-  npm run start-testnet-remote
+  npm run preprod
   ```
 - [ ] Confirm there are no errors (the CLI asks if you want to create a new wallet)
 
@@ -46,7 +46,7 @@ This document outlines the steps to verify that updated package versions do not 
 
 ## 8. Deploy a New Contract
 
-- [ ] Deploy the contract to the testnet
+- [ ] Deploy the contract to preprod
 - [ ] Note the contract address and deployment status
 
 ## 9. Increment the Contract Value
