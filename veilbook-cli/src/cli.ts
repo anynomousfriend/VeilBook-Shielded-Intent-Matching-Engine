@@ -349,7 +349,7 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
           const amountStr = await rli.question('  Amount to transfer: ');
           const recipientInput = await rli.question('  Recipient address (hex or mn_addr...): ');
           const amount = BigInt(amountStr);
-          
+
           let recipientBytes: Uint8Array;
           if (recipientInput.startsWith('mn_addr')) {
             const parsed = MidnightBech32m.parse(recipientInput);

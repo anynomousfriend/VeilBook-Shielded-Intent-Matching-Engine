@@ -8,7 +8,7 @@ setLogger(logger);
 async function run() {
   const config = new PreprodConfig();
   const seed = '0000000000000000000000000000000000000000000000000000000000000001';
-  
+
   logger.info('Building wallet...');
   const walletCtx = await buildWalletAndWaitForFunds(config, seed);
   const providers = await configureProviders(walletCtx, config);

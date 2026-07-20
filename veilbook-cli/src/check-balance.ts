@@ -27,7 +27,7 @@ const getSeedFromEnv = (): string | undefined => {
 async function checkBalance() {
   const config = new PreprodConfig();
   const seed = process.env.MIDNIGHT_SEED || getSeedFromEnv();
-  
+
   if (!seed) {
     console.error('No MIDNIGHT_SEED found in .env or process.env');
     process.exit(1);
@@ -35,15 +35,15 @@ async function checkBalance() {
 
   logger.info('Connecting to wallet and checking balances...');
   const walletCtx = await buildWalletAndWaitForFunds(config, seed);
-  
+
   // Wait for sync and get state
   const state = await Rx.firstValueFrom(walletCtx.wallet.state().pipe(Rx.filter((s) => s.isSynced)));
-  
+
   const tokenKey = unshieldedToken().raw;
   const balance = state.unshielded.balances[tokenKey] ?? 0n;
-  
+
   logger.info(`Total Unshielded Balance: ${balance} tNight`);
-  
+
   if (balance < 400_000_000n) {
     logger.warn('Your balance is too low (~0.4 tNIGHT or less). Please request more tNIGHT from the faucet.');
     logger.info(`Your address: ${walletCtx.unshieldedKeystore.getAddress()}`);

@@ -553,7 +553,7 @@ export const monitorDustBalance = async (wallet: WalletFacade, stopSignal: Promi
       ).length;
       const totalNight = state.unshielded.availableCoins.length;
 
-      let status = '';
+      let status: string;
       if (pendingCoins > 0 && availableCoins === 0) {
         status = '⚠ locked by pending tx';
       } else if (available > 0n) {

@@ -67,7 +67,7 @@ export function parseArgs(required: string[]): TestConfiguration {
   }
 
   let cfg: Config = new PreviewConfig();
-  let env = '';
+  let env: string;
   let psMode = 'undeployed';
   let cacheFileName = '';
   if (required.includes('env')) {
