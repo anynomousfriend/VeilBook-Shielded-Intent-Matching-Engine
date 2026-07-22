@@ -1,21 +1,31 @@
-export interface RelayOrderData {
-  direction: 'BUY' | 'SELL';
-  price: string;
-  size: string;
-  nonce: string;
-  commitment: string;
+export interface RelayPeerInfo {
   walletAddress: string;
-  blockHeight: number;
-  order: { direction: string; price: string; size: string };
+  encryptionPubKey: JsonWebKey;
+  signingPubKey: JsonWebKey;
 }
 
 export type RelayMessage =
-  | { type: 'PEER_JOINED'; walletAddress: string; peerCount: number }
+  | { type: 'ROOM_STATE'; peers: RelayPeerInfo[]; peerCount: number }
+  | {
+      type: 'PEER_JOINED';
+      walletAddress: string;
+      encryptionPubKey: JsonWebKey;
+      signingPubKey: JsonWebKey;
+      peerCount: number;
+    }
   | { type: 'PEER_LEFT'; walletAddress: string; peerCount: number }
-  | { type: 'ORDER_SUBMITTED'; data: RelayOrderData }
-  | { type: 'MATCH_ATTEMPTED'; by: string }
-  | { type: 'MATCH_CONFIRMED'; blockHeight: number; by: string }
-  | { type: 'MATCH_FAILED'; reason: string; by: string };
+  | {
+      type: 'ORDER_SUBMITTED';
+      sender: string;
+      protocolVersion: number;
+      payload: string;
+    }
+  | {
+      type: 'MATCH_ATTEMPTED' | 'MATCH_CONFIRMED' | 'MATCH_FAILED';
+      sender: string;
+      protocolVersion: number;
+      payload: string;
+    };
 
 export type RelayEventHandler = (msg: RelayMessage) => void;
 
@@ -25,11 +35,16 @@ export class RelayClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private contractAddress: string | null = null;
   private walletAddress: string | null = null;
+  private encryptionPubKey: JsonWebKey | null = null;
+  private signingPubKey: JsonWebKey | null = null;
 
   constructor(private url: string) {}
 
   connect(): void {
-    if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING) {
+    if (
+      this.ws?.readyState === WebSocket.OPEN ||
+      this.ws?.readyState === WebSocket.CONNECTING
+    ) {
       return;
     }
 
@@ -37,9 +52,20 @@ export class RelayClient {
 
     this.ws.onopen = () => {
       console.log('[relay-client] Connected to relay');
-      // Re-join room if we were in one
-      if (this.contractAddress && this.walletAddress) {
-        this.send({ type: 'JOIN', contractAddress: this.contractAddress, walletAddress: this.walletAddress });
+      if (
+        this.contractAddress &&
+        this.walletAddress &&
+        this.encryptionPubKey &&
+        this.signingPubKey
+      ) {
+        this.send({
+          type: 'JOIN',
+          contractAddress: this.contractAddress,
+          walletAddress: this.walletAddress,
+          protocolVersion: 1,
+          encryptionPubKey: this.encryptionPubKey,
+          signingPubKey: this.signingPubKey,
+        });
       }
     };
 
@@ -76,26 +102,60 @@ export class RelayClient {
     }
   }
 
-  join(contractAddress: string, walletAddress: string): void {
+  join(
+    contractAddress: string,
+    walletAddress: string,
+    encryptionPubKey: JsonWebKey,
+    signingPubKey: JsonWebKey,
+  ): void {
     this.contractAddress = contractAddress;
     this.walletAddress = walletAddress;
-    this.send({ type: 'JOIN', contractAddress, walletAddress });
+    this.encryptionPubKey = encryptionPubKey;
+    this.signingPubKey = signingPubKey;
+    this.send({
+      type: 'JOIN',
+      contractAddress,
+      walletAddress,
+      protocolVersion: 1,
+      encryptionPubKey,
+      signingPubKey,
+    });
   }
 
-  publishOrder(data: RelayOrderData): void {
-    this.send({ type: 'ORDER_SUBMITTED', data });
+  publishEncryptedOrder(sender: string, payload: string): void {
+    this.send({
+      type: 'ORDER_SUBMITTED',
+      sender,
+      protocolVersion: 1,
+      payload,
+    });
   }
 
-  publishMatchAttempt(walletAddress: string): void {
-    this.send({ type: 'MATCH_ATTEMPTED', by: walletAddress });
+  publishMatchAttempt(sender: string, payload: string): void {
+    this.send({
+      type: 'MATCH_ATTEMPTED',
+      sender,
+      protocolVersion: 1,
+      payload,
+    });
   }
 
-  publishMatchConfirmed(blockHeight: number, walletAddress: string): void {
-    this.send({ type: 'MATCH_CONFIRMED', blockHeight, by: walletAddress });
+  publishMatchConfirmed(sender: string, payload: string): void {
+    this.send({
+      type: 'MATCH_CONFIRMED',
+      sender,
+      protocolVersion: 1,
+      payload,
+    });
   }
 
-  publishMatchFailed(reason: string, walletAddress: string): void {
-    this.send({ type: 'MATCH_FAILED', reason, by: walletAddress });
+  publishMatchFailed(sender: string, payload: string): void {
+    this.send({
+      type: 'MATCH_FAILED',
+      sender,
+      protocolVersion: 1,
+      payload,
+    });
   }
 
   onMessage(handler: RelayEventHandler): () => void {
