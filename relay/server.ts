@@ -264,12 +264,10 @@ export function createRelayServer(port: number) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Standalone entry point
-// ---------------------------------------------------------------------------
-
-const PORT = parseInt(process.env.RELAY_PORT || '4400');
-const server = createRelayServer(PORT);
-console.log(
-  `[relay] Veilbook relay server listening on ws://localhost:${PORT}`,
-);
+if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
+  const PORT = parseInt(process.env.RELAY_PORT || '4400');
+  createRelayServer(PORT);
+  console.log(
+    `[relay] Veilbook relay server listening on ws://localhost:${PORT}`,
+  );
+}
