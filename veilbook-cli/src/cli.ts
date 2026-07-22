@@ -309,7 +309,7 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
             break;
           }
           await api.withStatus('Cancelling Order', () =>
-            api.cancelOrder(providers, veilbookContract, entry.order, entry.nonce, entry.commitment, myAddressBytes),
+            api.cancelOrder(providers, veilbookContract, entry.order, entry.nonce, entry.commitment),
           );
           console.log(`  ✓ Order cancelled.\n`);
         } catch (e) {

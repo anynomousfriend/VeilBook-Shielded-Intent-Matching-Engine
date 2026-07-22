@@ -165,7 +165,7 @@ export const submitOrder = async (
     submitOrder: { order, nonce: orderNonce },
   });
 
-  const finalizedTxData = await contract.callTx.submit_order(size);
+  const finalizedTxData = await contract.callTx.submit_order();
   logger.info(`Transaction ${finalizedTxData.public.txId} added in block ${finalizedTxData.public.blockHeight}`);
   // Circuit returns Bytes<32> (the commitment) — available on private.result
   const commitment = finalizedTxData.private.result as Uint8Array;
@@ -204,13 +204,11 @@ export const cancelOrder = async (
   order: Veilbook.Order,
   nonce: Uint8Array,
   commitment: Uint8Array,
-  refundAddr: Uint8Array,
 ): Promise<FinalizedTxData> => {
   logger.info('Cancelling order...');
   const address = contract.deployTxData.public.contractAddress;
   await updatePrivateState(providers, address, {
     cancelOrder: { order, nonce },
-    cancelUserAddress: userAddress(refundAddr),
   });
 
   const finalizedTxData = await contract.callTx.cancel_order(commitment);
