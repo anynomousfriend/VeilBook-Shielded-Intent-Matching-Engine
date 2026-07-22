@@ -68,8 +68,7 @@ export class VeilbookSimulator {
     const order: Order = { direction, price, size };
     this.circuitContext.currentPrivateState.submitOrder = { order, nonce };
     const result = this.contract.impureCircuits.submit_order(
-      this.circuitContext,
-      size
+      this.circuitContext
     );
     this.circuitContext = result.context;
     return {
@@ -112,12 +111,9 @@ export class VeilbookSimulator {
   public cancelOrder(
     order: Order,
     nonce: Uint8Array,
-    commitment: Uint8Array,
-    userAddr: Uint8Array
+    commitment: Uint8Array
   ): Ledger {
     this.circuitContext.currentPrivateState.cancelOrder = { order, nonce };
-    this.circuitContext.currentPrivateState.cancelUserAddress =
-      userAddress(userAddr);
 
     this.circuitContext = this.contract.impureCircuits.cancel_order(
       this.circuitContext,

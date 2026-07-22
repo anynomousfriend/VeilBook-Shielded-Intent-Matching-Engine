@@ -22,7 +22,6 @@ export type VeilbookPrivateState = {
   matchSellerAddress?: EitherAddress;
   // Cancel order
   cancelOrder?: { order: Order; nonce: Uint8Array };
-  cancelUserAddress?: EitherAddress;
 };
 
 export const witnesses: Witnesses<VeilbookPrivateState> = {
@@ -92,12 +91,5 @@ export const witnesses: Witnesses<VeilbookPrivateState> = {
   }: WitnessContext<Ledger, VeilbookPrivateState>) => {
     if (!privateState.cancelOrder) throw new Error("cancelOrder not set");
     return [privateState, privateState.cancelOrder.order];
-  },
-  getCancelUserAddress: ({
-    privateState
-  }: WitnessContext<Ledger, VeilbookPrivateState>) => {
-    if (!privateState.cancelUserAddress)
-      throw new Error("cancelUserAddress not set");
-    return [privateState, privateState.cancelUserAddress];
   }
 };

@@ -12,7 +12,6 @@ export struct Order {
 
 export ledger match_count: Counter;
 export ledger orders_state: Map<Bytes<32>, State>;
-export ledger token_locks: Map<Bytes<32>, Uint<64>>;
 export ledger token_color: Bytes<32>;
 export ledger owner: UserAddress;
 
@@ -41,23 +40,15 @@ constructor(initial_supply: Uint<64>, initial_owner: UserAddress) {
   token_color = mintUnshieldedToken(domain, d_supply, left<ContractAddress, UserAddress>(kernel.self()));
 }
 
-export circuit submit_order(deposit: Uint<64>): Bytes<32> {
+export circuit submit_order(): Bytes<32> {
   const nonce = getOrderNonce();
   const order = getOrder();
   const commitment = persistentCommit<Order>(order, nonce);
 
   const d_commit = disclose(commitment);
-  const d_deposit = disclose(deposit);
   assert(!orders_state.member(d_commit), "Order already exists");
 
-  // Verify deposit matches order size
-  assert(disclose(order.size == deposit), "Deposit must equal order size");
-
-  // Escrow: absorb user's tokens into the contract
-  receiveUnshielded(token_color, d_deposit as Uint<128>);
-
   orders_state.insert(d_commit, State.OPEN);
-  token_locks.insert(d_commit, d_deposit);
   return d_commit;
 }
 
@@ -113,15 +104,9 @@ export circuit cancel_order(commitment: Bytes<32>): [] {
   // Verify caller owns the order by reconstructing the commitment
   const nonce = getCancelOrderNonce();
   const order = getCancelOrder();
-  assert(d_commit == persistentCommit<Order>(order, nonce), "Commitment mismatch — not order owner");
-
-  // Refund locked tokens to user
-  const locked_amount = token_locks.lookup(d_commit) as Uint<128>;
-  const user_addr = getCancelUserAddress();
-  sendUnshielded(token_color, locked_amount, disclose(user_addr));
+  assert(d_commit == persistentCommit<Order>(order, nonce), "Commitment mismatch - not order owner");
 
   orders_state.insert(d_commit, State.CANCELLED);
-  token_locks.remove(d_commit);
 }
 
 
