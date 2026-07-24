@@ -4,6 +4,22 @@ export interface RelayPeerInfo {
   signingPubKey: JsonWebKey;
 }
 
+export interface RelayOrderData {
+  direction: 'BUY' | 'SELL';
+  price: string;
+  size: string;
+  nonce: string;
+  commitment: string;
+  walletAddress: string;
+  blockHeight: number;
+  order: {
+    direction: string;
+    price: string;
+    size: string;
+  };
+  offerFile?: any;
+}
+
 export type RelayMessage =
   | { type: 'ROOM_STATE'; peers: RelayPeerInfo[]; peerCount: number }
   | {

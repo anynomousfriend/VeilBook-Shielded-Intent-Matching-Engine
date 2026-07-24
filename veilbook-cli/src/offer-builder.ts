@@ -15,7 +15,7 @@ export interface OfferFileHeader {
 export interface SerializedOfferFile {
   header: OfferFileHeader;
   guaranteedOfferBytes?: string; // Hex serialized offer
-  fallibleOfferBytes?: string;   // Hex serialized offer
+  fallibleOfferBytes?: string; // Hex serialized offer
   signatureHex: string;
 }
 

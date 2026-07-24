@@ -71,7 +71,7 @@ export const submitOrder = async (
     submitOrder: { order, nonce: orderNonce },
   });
 
-  const tx = await contract.callTx.submit_order(sizeBigInt);
+  const tx = await contract.callTx.submit_order();
 
   return {
     txData: tx.public,
@@ -115,7 +115,6 @@ export const cancelOrder = async (
   order: Veilbook.Order,
   nonce: Uint8Array,
   commitment: Uint8Array,
-  refundAddr: Uint8Array
 ) => {
   const address = contract.deployTxData.public.contractAddress;
   providers.privateStateProvider.setContractAddress(address);
@@ -124,7 +123,6 @@ export const cancelOrder = async (
   await providers.privateStateProvider.set(VeilbookPrivateStateId, {
     ...currentState,
     cancelOrder: { order, nonce },
-    cancelUserAddress: toUserAddress(refundAddr),
   });
 
   const tx = await contract.callTx.cancel_order(commitment);

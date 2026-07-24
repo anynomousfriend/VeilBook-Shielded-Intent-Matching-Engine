@@ -215,18 +215,34 @@ function DashboardContent() {
       case 'PEER_LEFT':
         dispatch({ type: 'PEER_LEFT', peerCount: msg.peerCount });
         break;
-      case 'ORDER_SUBMITTED':
-        counterpartyZkRef.current = msg.data;
-        dispatch({
-          type: 'COUNTERPARTY_ORDER_RECEIVED',
-          commitment: msg.data.commitment,
-          direction: msg.data.direction,
-          blockHeight: msg.data.blockHeight,
-        });
+      case 'ORDER_SUBMITTED': {
+        try {
+          const parsed = JSON.parse(msg.payload) as RelayOrderData;
+          if (parsed.commitment) {
+            counterpartyZkRef.current = parsed;
+            dispatch({
+              type: 'COUNTERPARTY_ORDER_RECEIVED',
+              commitment: parsed.commitment,
+              direction: parsed.direction,
+              blockHeight: parsed.blockHeight || 0,
+            });
+          }
+        } catch {
+          // ignore
+        }
         break;
-      case 'MATCH_CONFIRMED':
-        dispatch({ type: 'REMOTE_MATCH_CONFIRMED', blockHeight: msg.blockHeight });
+      }
+      case 'MATCH_CONFIRMED': {
+        let blockHeight = 0;
+        try {
+          const parsed = JSON.parse(msg.payload);
+          blockHeight = parsed.blockHeight || 0;
+        } catch {
+          // ignore
+        }
+        dispatch({ type: 'REMOTE_MATCH_CONFIRMED', blockHeight });
         break;
+      }
     }
   }, []);
 

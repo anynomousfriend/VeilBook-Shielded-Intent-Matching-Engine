@@ -5,7 +5,7 @@
 
 import { Buffer } from 'buffer';
 
-const PADDING_SIZE = 256;
+const PADDING_SIZE = 1024;
 
 export interface EncryptedEnvelope {
   ciphertext: string; // Base64 AES-GCM ciphertext
@@ -14,7 +14,8 @@ export interface EncryptedEnvelope {
 }
 
 export interface SessionKeyInfo {
-  keyPair: CryptoKeyPair;
+  publicKey: CryptoKey;
+  privateKey: CryptoKey;
   publicKeyJwk: JsonWebKey;
 }
 
@@ -30,10 +31,10 @@ export interface DecryptedPayload<T = any> {
 }
 
 /**
- * Converts ArrayBuffer to Base64 string.
+ * Converts ArrayBuffer or Uint8Array to Base64 string.
  */
-export function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  return Buffer.from(buffer).toString('base64');
+export function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
+  return Buffer.from(buffer as any).toString('base64');
 }
 
 /**
@@ -260,7 +261,7 @@ export async function encryptPayload(
       iv,
     },
     sharedSecret,
-    paddedBuffer,
+    paddedBuffer as unknown as BufferSource,
   );
 
   return {
@@ -298,7 +299,7 @@ export async function decryptPayload<T = any>(
     throw new Error(`Replay detected: seq ${container.seq} <= lastSeq ${lastSeq}`);
   }
 
-  if (Date.now() - container.ts > maxStalenessMs) {
+  if (Date.now() - container.ts >= maxStalenessMs) {
     throw new Error(`Stale payload: timestamp ${container.ts} is older than maxStalenessMs ${maxStalenessMs}`);
   }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { RelayClient, type RelayMessage, type RelayOrderData } from '@/lib/relay-client';
+import { createSession, type Session } from '@/lib/crypto';
 
 const RELAY_URL = process.env.NEXT_PUBLIC_RELAY_URL || 'ws://localhost:4400';
 
@@ -22,6 +23,7 @@ export function useRelay(
   onRelayMessage?: (msg: RelayMessage) => void,
 ): UseRelayReturn {
   const clientRef = useRef<RelayClient | null>(null);
+  const sessionRef = useRef<Session | null>(null);
   const [peerCount, setPeerCount] = useState(0);
   const [counterpartyOrders, setCounterpartyOrders] = useState<RelayOrderData[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -29,7 +31,22 @@ export function useRelay(
 
   // Stable callback ref for external handler
   const onRelayMessageRef = useRef(onRelayMessage);
-  onRelayMessageRef.current = onRelayMessage;
+  useEffect(() => {
+    onRelayMessageRef.current = onRelayMessage;
+  }, [onRelayMessage]);
+
+  // Initialize WebCrypto session once
+  useEffect(() => {
+    let cancelled = false;
+    createSession().then((session) => {
+      if (!cancelled) {
+        sessionRef.current = session;
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const client = new RelayClient(RELAY_URL);
@@ -47,16 +64,30 @@ export function useRelay(
           setPeerCount(msg.peerCount);
           break;
         case 'ORDER_SUBMITTED':
-          // Only add if it's from a different wallet
-          if (msg.data.walletAddress !== walletAddress) {
-            setCounterpartyOrders((prev) => [...prev, msg.data]);
+          if (msg.sender !== walletAddress) {
+            try {
+              const parsed = JSON.parse(msg.payload);
+              if (parsed.commitment) {
+                setCounterpartyOrders((prev) => [...prev, parsed as RelayOrderData]);
+              }
+            } catch {
+              // ignore
+            }
           }
           break;
-        case 'MATCH_CONFIRMED':
-          setMatchEvent({ type: 'confirmed', blockHeight: msg.blockHeight, by: msg.by });
+        case 'MATCH_CONFIRMED': {
+          let blockHeight = 0;
+          try {
+            const parsed = JSON.parse(msg.payload);
+            blockHeight = parsed.blockHeight || 0;
+          } catch {
+            // ignore
+          }
+          setMatchEvent({ type: 'confirmed', blockHeight, by: msg.sender });
           break;
+        }
         case 'MATCH_ATTEMPTED':
-          setMatchEvent({ type: 'attempted', by: msg.by });
+          setMatchEvent({ type: 'attempted', by: msg.sender });
           break;
       }
     });
@@ -76,28 +107,59 @@ export function useRelay(
     };
   }, [walletAddress]);
 
-  // Join room when contract address and wallet are available
+  // Join room when contract address, wallet, and session are available
   useEffect(() => {
-    if (contractAddress && walletAddress && clientRef.current) {
-      clientRef.current.join(contractAddress, walletAddress);
+    if (contractAddress && walletAddress && clientRef.current && sessionRef.current) {
+      clientRef.current.join(
+        contractAddress,
+        walletAddress,
+        sessionRef.current.encryption.publicKeyJwk,
+        sessionRef.current.signing.publicKeyJwk,
+      );
     }
   }, [contractAddress, walletAddress]);
 
-  const publishOrder = useCallback((data: RelayOrderData) => {
-    clientRef.current?.publishOrder(data);
-  }, []);
+  const publishOrder = useCallback(
+    (data: RelayOrderData) => {
+      if (walletAddress && clientRef.current) {
+        clientRef.current.publishEncryptedOrder(walletAddress, JSON.stringify(data));
+      }
+    },
+    [walletAddress],
+  );
 
-  const publishMatchAttempt = useCallback((addr: string) => {
-    clientRef.current?.publishMatchAttempt(addr);
-  }, []);
+  const publishMatchAttempt = useCallback(
+    (addr: string) => {
+      if (clientRef.current) {
+        clientRef.current.publishMatchAttempt(addr, JSON.stringify({ sender: addr }));
+      }
+    },
+    [],
+  );
 
-  const publishMatchConfirmed = useCallback((blockHeight: number, addr: string) => {
-    clientRef.current?.publishMatchConfirmed(blockHeight, addr);
-  }, []);
+  const publishMatchConfirmed = useCallback(
+    (blockHeight: number, addr: string) => {
+      if (clientRef.current) {
+        clientRef.current.publishMatchConfirmed(
+          addr,
+          JSON.stringify({ blockHeight, sender: addr }),
+        );
+      }
+    },
+    [],
+  );
 
-  const publishMatchFailed = useCallback((reason: string, addr: string) => {
-    clientRef.current?.publishMatchFailed(reason, addr);
-  }, []);
+  const publishMatchFailed = useCallback(
+    (reason: string, addr: string) => {
+      if (clientRef.current) {
+        clientRef.current.publishMatchFailed(
+          addr,
+          JSON.stringify({ reason, sender: addr }),
+        );
+      }
+    },
+    [],
+  );
 
   return {
     peerCount,
