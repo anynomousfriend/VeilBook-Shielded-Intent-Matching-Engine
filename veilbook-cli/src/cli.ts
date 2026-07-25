@@ -400,6 +400,7 @@ const mapContainerPort = (env: StartedDockerComposeEnvironment, url: string, con
  *   5. Clean up: close wallet, readline, and docker environment
  */
 export const run = async (config: Config, _logger: Logger, dockerEnv?: DockerComposeEnvironment): Promise<void> => {
+  api.ensureHeapMemory();
   logger = _logger;
   api.setLogger(_logger);
 

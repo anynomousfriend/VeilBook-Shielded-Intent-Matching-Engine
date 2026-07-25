@@ -38,6 +38,8 @@ import {
 import pino, { type Logger } from 'pino';
 import * as Rx from 'rxjs';
 import { WebSocket } from 'ws';
+import v8 from 'node:v8';
+import { spawnSync } from 'node:child_process';
 import {
   type VeilbookCircuits,
   type VeilbookContract,
@@ -441,7 +443,24 @@ const printWalletSummary = (seed: string, state: any, unshieldedKeystore: Unshie
   );
 };
 
+/**
+ * Ensures Node.js V8 process has sufficient heap memory allocation (at least 8192MB).
+ * If current process heap limit is < 7.5GB and has not already been boosted,
+ * it will automatically respawn itself with `NODE_OPTIONS=--max-old-space-size=8192`.
+ */
+export const ensureHeapMemory = (targetMB = 8192): void => {
+  const currentLimitMB = Math.round(v8.getHeapStatistics().heap_size_limit / (1024 * 1024));
+  if (currentLimitMB < targetMB - 500 && !process.env.VEILBOOK_HEAP_BOOSTED) {
+    const existingOptions = process.env.NODE_OPTIONS || '';
+    const newOptions = `--max-old-space-size=${targetMB} ${existingOptions}`.trim();
+    const env = { ...process.env, NODE_OPTIONS: newOptions, VEILBOOK_HEAP_BOOSTED: '1' };
+    const res = spawnSync(process.argv[0], process.argv.slice(1), { stdio: 'inherit', env });
+    process.exit(res.status ?? 0);
+  }
+};
+
 export const buildWalletAndWaitForFunds = async (config: Config, seed: string): Promise<WalletContext> => {
+  ensureHeapMemory(8192);
   console.log('');
 
   const { wallet, shieldedSecretKeys, dustSecretKey, unshieldedKeystore } = await withStatus(
