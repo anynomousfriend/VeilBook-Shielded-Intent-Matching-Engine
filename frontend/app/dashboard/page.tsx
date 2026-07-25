@@ -15,6 +15,7 @@ import { useRelay } from "@/hooks/use-relay";
 import { createBrowserProviders } from "@/lib/providers";
 import { deployVeilbook, joinVeilbook, submitOrder, matchOrders, type SubmitOrderResult } from "@/lib/veilbook-api";
 import type { Veilbook } from "@midnight-ntwrk/veilbook-contract";
+import { createSignedOfferFile } from "@/lib/offer-builder";
 
 // Per-trader ZK data (stored in refs — Uint8Arrays aren't serializable in React state)
 interface TraderZkData {
@@ -303,6 +304,14 @@ function DashboardContent() {
           contractAddress: contractAddr,
         });
 
+        const offerFile = createSignedOfferFile(
+          contractAddr,
+          address,
+          commitHex,
+          new Uint8Array(64),
+          new Uint8Array(64),
+        );
+
         // Publish order to relay so counterparty can discover it
         relay.publishOrder({
           direction: order.direction,
@@ -317,6 +326,7 @@ function DashboardContent() {
             price: String(result.order.price),
             size: String(result.order.size),
           },
+          offerFile,
         });
       } catch (err: any) {
         console.error("Order submission failed:", err);
