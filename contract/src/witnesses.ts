@@ -64,20 +64,6 @@ export const witnesses: Witnesses<VeilbookPrivateState> = {
     if (!privateState.matchOrderB) throw new Error("matchOrderB not set");
     return [privateState, privateState.matchOrderB.order];
   },
-  getMatchBuyerAddress: ({
-    privateState
-  }: WitnessContext<Ledger, VeilbookPrivateState>) => {
-    if (!privateState.matchBuyerAddress)
-      throw new Error("matchBuyerAddress not set");
-    return [privateState, privateState.matchBuyerAddress];
-  },
-  getMatchSellerAddress: ({
-    privateState
-  }: WitnessContext<Ledger, VeilbookPrivateState>) => {
-    if (!privateState.matchSellerAddress)
-      throw new Error("matchSellerAddress not set");
-    return [privateState, privateState.matchSellerAddress];
-  },
 
   // --- Cancel order ---
   getCancelOrderNonce: ({

@@ -24,13 +24,9 @@ witness getMatchOrderANonce(): Bytes<32>;
 witness getMatchOrderA(): Order;
 witness getMatchOrderBNonce(): Bytes<32>;
 witness getMatchOrderB(): Order;
-witness getMatchBuyerAddress(): Either<ContractAddress, UserAddress>;
-witness getMatchSellerAddress(): Either<ContractAddress, UserAddress>;
-
 // --- Cancel witnesses ---
 witness getCancelOrderNonce(): Bytes<32>;
 witness getCancelOrder(): Order;
-witness getCancelUserAddress(): Either<ContractAddress, UserAddress>;
 
 constructor(initial_supply: Uint<64>, initial_owner: UserAddress) {
   const domain = pad(32, "veilbook:token:v1");
@@ -81,13 +77,6 @@ export circuit match_orders(commit_a: Bytes<32>, commit_b: Bytes<32>): [] {
   } else { // A is SELL, B is BUY
     assert(disclose(b_order.price >= a_order.price), "Price mismatch: BUY price < SELL price");
   }
-
-  // Settlement: send tokens to both parties
-  const settlement_size = disclose(a_order.size) as Uint<128>;
-  const buyer_addr = getMatchBuyerAddress();
-  const seller_addr = getMatchSellerAddress();
-  sendUnshielded(token_color, settlement_size, disclose(buyer_addr));
-  sendUnshielded(token_color, settlement_size, disclose(seller_addr));
 
   orders_state.insert(d_commit_a, State.MATCHED);
   orders_state.insert(d_commit_b, State.MATCHED);

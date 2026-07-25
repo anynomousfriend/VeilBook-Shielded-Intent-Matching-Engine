@@ -11,11 +11,10 @@ import path from 'node:path';
 const GENESIS_MINT_WALLET_SEED = '0000000000000000000000000000000000000000000000000000000000000001';
 
 const mapContainerPort = (env: StartedDockerComposeEnvironment, url: string, containerName: string): string => {
-  const parsed = new URL(url);
+  const mappedUrl = new URL(url);
   const container = env.getContainer(containerName);
-  const port = container.getMappedPort(parseInt(parsed.port, 10));
-  parsed.port = port.toString();
-  return parsed.toString();
+  mappedUrl.port = String(container.getFirstMappedPort());
+  return mappedUrl.toString().replace(/\/+$/, '');
 };
 
 async function runTest() {
