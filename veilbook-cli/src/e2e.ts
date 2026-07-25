@@ -1,3 +1,4 @@
+import { MidnightBech32m } from '@midnight-ntwrk/wallet-sdk-address-format';
 import { createLogger } from './logger-utils.js';
 import { StandaloneConfig, currentDir } from './config.js';
 import * as api from './api.js';
@@ -24,8 +25,7 @@ async function runTest() {
   try {
     console.log('Building wallet...');
     const walletCtx = await api.buildWalletAndWaitForFunds(config, GENESIS_MINT_WALLET_SEED);
-    const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
-    const myAddressBytes = Buffer.from(myAddressHex, 'hex');
+    const myAddressBytes = MidnightBech32m.parse(walletCtx.unshieldedKeystore.getBech32Address().toString()).data;
 
     console.log('Configuring providers...');
     const providers = await api.configureProviders(walletCtx, config);

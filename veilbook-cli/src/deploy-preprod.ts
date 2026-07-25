@@ -1,3 +1,4 @@
+import { MidnightBech32m } from '@midnight-ntwrk/wallet-sdk-address-format';
 import { deploy, configureProviders, buildWalletAndWaitForFunds, setLogger } from './api.js';
 import { PreprodConfig } from './config.js';
 import pino from 'pino';
@@ -25,8 +26,7 @@ async function run() {
   const walletCtx = await buildWalletAndWaitForFunds(config, seed);
   const providers = await configureProviders(walletCtx, config);
 
-  const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
-  const myAddressBytes = Buffer.from(myAddressHex, 'hex');
+  const myAddressBytes = MidnightBech32m.parse(walletCtx.unshieldedKeystore.getBech32Address().toString()).data;
   const deployedContract = await deploy(providers, {}, myAddressBytes);
   const address = deployedContract.deployTxData.public.contractAddress;
 

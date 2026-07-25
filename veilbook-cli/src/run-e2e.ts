@@ -1,19 +1,21 @@
+import { MidnightBech32m } from '@midnight-ntwrk/wallet-sdk-address-format';
 import { createLogger } from './logger-utils.js';
 import { StandaloneConfig, currentDir } from './config.js';
 import * as api from './api.js';
 import { Veilbook } from '@midnight-ntwrk/veilbook-contract';
 import { generateRandomSeed } from '@midnight-ntwrk/wallet-sdk-hd';
 import { Buffer } from 'buffer';
-import { DockerComposeEnvironment, Wait, StartedDockerComposeEnvironment } from 'testcontainers';
+import { DockerComposeEnvironment, StartedDockerComposeEnvironment, Wait } from 'testcontainers';
 import path from 'node:path';
 
 const GENESIS_MINT_WALLET_SEED = '0000000000000000000000000000000000000000000000000000000000000001';
 
-const mapContainerPort = (env: StartedDockerComposeEnvironment, url: string, containerName: string) => {
-  const mappedUrl = new URL(url);
+const mapContainerPort = (env: StartedDockerComposeEnvironment, url: string, containerName: string): string => {
+  const parsed = new URL(url);
   const container = env.getContainer(containerName);
-  mappedUrl.port = String(container.getFirstMappedPort());
-  return mappedUrl.toString().replace(/\/+$/, '');
+  const port = container.getMappedPort(parseInt(parsed.port, 10));
+  parsed.port = port.toString();
+  return parsed.toString();
 };
 
 async function runTest() {
@@ -23,8 +25,12 @@ async function runTest() {
 
   console.log('Starting Docker environment...');
   const dockerEnv = new DockerComposeEnvironment(path.resolve(currentDir, '..'), 'standalone.yml')
-    .withWaitStrategy('veilbook-proof-server', Wait.forLogMessage('Actix runtime found; starting in Actix runtime', 1))
-    .withWaitStrategy('veilbook-indexer', Wait.forLogMessage(/starting indexing/, 1));
+    .withStartupTimeout(300_000)
+    .withWaitStrategy(
+      'proof-server',
+      Wait.forLogMessage('Actix runtime found; starting in Actix runtime', 1).withStartupTimeout(300_000),
+    )
+    .withWaitStrategy('indexer', Wait.forLogMessage(/starting indexing/, 1).withStartupTimeout(120_000));
   const env = await dockerEnv.up();
 
   try {
@@ -36,8 +42,7 @@ async function runTest() {
 
     console.log('Building wallet...');
     const walletCtx = await api.buildWalletAndWaitForFunds(config, GENESIS_MINT_WALLET_SEED);
-    const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
-    const myAddressBytes = Buffer.from(myAddressHex, 'hex');
+    const myAddressBytes = MidnightBech32m.parse(walletCtx.unshieldedKeystore.getBech32Address().toString()).data;
 
     console.log('Configuring providers...');
     const providers = await api.configureProviders(walletCtx, config);

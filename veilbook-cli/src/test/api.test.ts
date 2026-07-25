@@ -1,3 +1,4 @@
+import { MidnightBech32m } from '@midnight-ntwrk/wallet-sdk-address-format';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { TestEnvironment } from './commons';
 import * as api from '../api';
@@ -28,8 +29,7 @@ describe('Veilbook API E2E', () => {
       const walletCtx = await testEnv.getWallet();
       const providers = await api.configureProviders(walletCtx, (testEnv as any).testConfig.dappConfig);
 
-      const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
-      const myAddressBytes = Buffer.from(myAddressHex, 'hex');
+      const myAddressBytes = MidnightBech32m.parse(walletCtx.unshieldedKeystore.getBech32Address().toString()).data;
 
       // Deploy
       const contract = await api.deploy(providers, {}, myAddressBytes);

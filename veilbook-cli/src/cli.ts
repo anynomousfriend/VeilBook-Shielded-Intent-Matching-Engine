@@ -160,8 +160,7 @@ const deployOrJoin = async (
   walletCtx: api.WalletContext,
   rli: Interface,
 ): Promise<DeployedVeilbookContract | null> => {
-  const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
-  const myAddressBytes = Buffer.from(myAddressHex, 'hex');
+  const myAddressBytes = MidnightBech32m.parse(walletCtx.unshieldedKeystore.getBech32Address().toString()).data;
   while (true) {
     const dustLabel = await getDustLabel(walletCtx.wallet);
     const choice = await rli.question(contractMenu(dustLabel));
@@ -229,8 +228,7 @@ const mainLoop = async (providers: VeilbookProviders, walletCtx: api.WalletConte
   const localOrders: { order: Veilbook.Order; nonce: Uint8Array; commitment: Uint8Array }[] = [];
 
   // Get the user's unshielded address bytes for token operations
-  const myAddressHex = walletCtx.unshieldedKeystore.getAddress() as unknown as string;
-  const myAddressBytes = Buffer.from(myAddressHex, 'hex');
+  const myAddressBytes = MidnightBech32m.parse(walletCtx.unshieldedKeystore.getBech32Address().toString()).data;
 
   const promptOrder = async (label: string): Promise<{ order: Veilbook.Order; nonce: Uint8Array }> => {
     console.log(`\n  --- ${label} ---`);
